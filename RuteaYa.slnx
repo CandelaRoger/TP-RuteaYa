@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="RuteaYa.API/RuteaYa.API.csproj" />
+  <Project Path="RuteaYa.MVC/RuteaYa.MVC.csproj" />
+</Solution>
