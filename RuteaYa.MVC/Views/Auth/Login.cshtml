@@ -1,0 +1,40 @@
+﻿@{
+    Layout = null; // Pantalla pública
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Ingresar - RuteaYa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+    <div class="container d-flex align-items-center justify-content-center min-vh-100">
+        <div class="card shadow-lg border-0 rounded-4" style="max-width: 900px; width: 100%;">
+            <div class="row g-0">
+                <div class="col-md-6 d-none d-md-block bg-primary text-white rounded-start-4 p-5 d-flex flex-column justify-content-center">
+                    <h1 class="display-5 fw-bold mb-4">Llevá paquetes. Ganá plata.</h1>
+                    <p class="lead">Aprovechá tus recorridos diarios para transportar envíos. La plataforma colaborativa líder.</p>
+                </div>
+                <div class="col-md-6 p-5">
+                    <h3 class="fw-bold text-center mb-4 text-primary">RuteaYa</h3>
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Email</label>
+                            <input type="email" class="form-control form-control-lg bg-light border-0" required />
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-muted">Contraseña</label>
+                            <input type="password" class="form-control form-control-lg bg-light border-0" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold rounded-pill">Iniciar Sesión</button>
+                        <div class="text-center mt-4">
+                            <span class="text-muted">¿Nuevo por acá?</span> <a href="~/Auth/Registro" class="text-decoration-none fw-bold">Registrarse</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

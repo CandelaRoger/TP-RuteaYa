@@ -1,0 +1,51 @@
+﻿@model RuteaYa.MVC.Models.RegistroViewModel
+@*
+      
+*@
+@{
+    ViewData["Title"] = "Registro";
+}
+
+
+    <div class="container d-flex align-items-center justify-content-center min-vh-100">
+        <div class="card shadow-sm border-0 rounded-4 p-5" style="max-width: 500px; width: 100%;">
+            <h3 class="fw-bold text-center mb-2 text-primary">RuteaYa</h3>
+            <p class="text-center text-muted mb-4">Creá tu cuenta gratis</p>
+            <form asp-controller="Auth" asp-action="Registro" method="post">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small text-muted">Nombre</label>
+                        <input asp-for="Nombre" type="text" class="form-control bg-light border-0" />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small text-muted">Apellido</label>
+                        <input asp-for="Apellido" type="text" class="form-control bg-light border-0" />
+                        <span asp-validation-for="Apellido" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Email</label>
+                    <input asp-for="Email" type="email" class="form-control bg-light border-0" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Contraseña</label>
+                    <input asp-for="Password" type="password" class="form-control bg-light border-0" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small text-muted">Confirmar Contraseña</label>
+                    <input asp-for="ConfirmacionPassword" type="password" class="form-control bg-light border-0" />
+                    <span asp-validation-for="ConfirmacionPassword" class="text-danger"></span>
+                </div>
+                <span asp-validation-summary="all" class="text-danger"></span>
+
+                <button type="submit" class="btn btn-primary w-100 fw-bold rounded-pill">Registrarse</button>
+                <div class="text-center mt-3">
+                    <a href="~/Auth/Login" class="text-decoration-none text-muted small">Ya tengo cuenta</a>
+                </div>
+            </form>
+        </div>
+    </div>
