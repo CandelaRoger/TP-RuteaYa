@@ -25,6 +25,11 @@ namespace RuteaYa.MVC.Controllers
             return View("registro");
         }
 
+        [HttpGet]
+        public IActionResult Login()
+        {
+            return View();
+        }
 
         [HttpPost]
         public async Task<IActionResult> Registro(RegistroViewModel model)
@@ -36,8 +41,10 @@ namespace RuteaYa.MVC.Controllers
             var dto = _mapper.Map<RegistroDto>(model);
 
             // Llamada a la Web API con HttpClient
-            var client = _httpClientFactory.CreateClient();
-            var response = await client.PostAsJsonAsync("https://localhost:7086/api/auth/registro", dto);
+            // Se utiliza IHttpClientFactory para crear un cliente HTTP y un puerto fijo para la API
+            var client = _httpClientFactory.CreateClient("RuteaYaApi");
+            var response = await client.PostAsJsonAsync("api/auth/registro", dto);
+
 
             if (response.IsSuccessStatusCode)
             {
