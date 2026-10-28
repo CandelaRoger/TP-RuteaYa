@@ -1,0 +1,90 @@
+﻿@model List<RuteaYa.DTOs.ViajeDto>
+@{
+    ViewData["Title"] = "Mis Viajes";
+    string filtro = ViewBag.FiltroActual ?? "Activos";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">Mis viajes</h2>
+        <p class="text-muted mb-0">Tus recorridos habituales configurados en la plataforma.</p>
+    </div>
+    <a asp-action="Crear" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
+        + Nuevo viaje
+    </a>
+</div>
+
+@* Filtros con estilo pills de Bootstrap *@
+<div class="d-flex gap-2 mb-4">
+    <a asp-action="Index" asp-route-filtro="Activos"
+       class="btn rounded-pill px-3 @(filtro == "Activos" ? "btn-primary" : "btn-white bg-white text-muted shadow-sm")">
+        Activos
+    </a>
+    <a asp-action="Index" asp-route-filtro="Inactivos"
+       class="btn rounded-pill px-3 @(filtro == "Inactivos" ? "btn-primary" : "btn-white bg-white text-muted shadow-sm")">
+        Inactivos
+    </a>
+    <a asp-action="Index" asp-route-filtro="Todos"
+       class="btn rounded-pill px-3 @(filtro == "Todos" ? "btn-primary" : "btn-white bg-white text-muted shadow-sm")">
+        Todos
+    </a>
+</div>
+
+@* Listado de viajes *@
+@if (Model == null || Model.Count == 0)
+{
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+        <h5 class="text-muted fw-normal mb-3">No tenés viajes registrados en este filtro.</h5>
+        <div>
+            <a asp-action="Crear" class="btn btn-outline-primary rounded-pill px-4">Crear tu primer viaje</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column gap-3">
+        @foreach (var viaje in Model)
+        {
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <div class="row align-items-center g-3">
+                    <div class="col-md-5">
+                        <div class="fw-bold fs-5 text-dark mb-1">
+                            @viaje.OrigenDir <span class="text-primary">→</span> @viaje.DestinoDir
+                        </div>
+                        <div class="text-muted small">
+                            <span> @viaje.DiasTexto</span> · <span> @viaje.HorarioTexto</span>
+                        </div>
+                        @if (viaje.Paradas != null && viaje.Paradas.Count > 0)
+                        {
+                            <div class="mt-2 small text-secondary">
+                                <strong>Paradas:</strong> @string.Join(", ", viaje.Paradas.Select(p => p.Direccion))
+                            </div>
+                        }
+                    </div>
+
+                    <div class="col-md-4 text-muted small">
+                        <div> <strong>@viaje.MaxPaquetes</strong> paquetes máx. ·  <strong>@viaje.PesoMaxKg kg</strong></div>
+                        <div> <strong>@viaje.DistanciaKm km</strong> aprox. ·  Desvío máx: <strong>@viaje.DesvioMaxKm km</strong></div>
+                    </div>
+
+                    <div class="col-md-3 d-flex justify-content-md-end align-items-center gap-2">
+                        @if (viaje.Activo)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">Activo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2">Inactivo</span>
+                        }
+
+                        <form asp-action="Desactivar" asp-route-id="@viaje.Id" method="post" class="d-inline m-0">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                @(viaje.Activo ? "Desactivar" : "Activar")
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

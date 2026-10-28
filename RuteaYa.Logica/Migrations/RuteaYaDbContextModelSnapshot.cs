@@ -22,6 +22,38 @@ namespace RuteaYa.Logica.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("RuteaYa.Entidades.Parada", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("Lat")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("Lng")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ViajeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ViajeId");
+
+                    b.ToTable("Paradas");
+                });
+
             modelBuilder.Entity("RuteaYa.Entidades.Usuario", b =>
                 {
                     b.Property<int>("Id")
@@ -55,6 +87,128 @@ namespace RuteaYa.Logica.Migrations
                         .IsUnique();
 
                     b.ToTable("Usuarios");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.Viaje", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("DestinoDir")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("DestinoLat")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("DestinoLng")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("DesvioMaxKm")
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<decimal>("DistanciaKm")
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<int>("DuracionMin")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("HoraLlegada")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan>("HoraSalida")
+                        .HasColumnType("time");
+
+                    b.Property<int>("MaxPaquetes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OrigenDir")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("OrigenLat")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("OrigenLng")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("PesoMaxKg")
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("Viajes");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.ViajeDia", b =>
+                {
+                    b.Property<int>("ViajeId")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("DiaSemana")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("ViajeId", "DiaSemana");
+
+                    b.ToTable("ViajeDias");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.Parada", b =>
+                {
+                    b.HasOne("RuteaYa.Entidades.Viaje", "Viaje")
+                        .WithMany("Paradas")
+                        .HasForeignKey("ViajeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Viaje");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.Viaje", b =>
+                {
+                    b.HasOne("RuteaYa.Entidades.Usuario", "Usuario")
+                        .WithMany("Viajes")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.ViajeDia", b =>
+                {
+                    b.HasOne("RuteaYa.Entidades.Viaje", "Viaje")
+                        .WithMany("DiasSemana")
+                        .HasForeignKey("ViajeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Viaje");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.Usuario", b =>
+                {
+                    b.Navigation("Viajes");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.Viaje", b =>
+                {
+                    b.Navigation("DiasSemana");
+
+                    b.Navigation("Paradas");
                 });
 #pragma warning restore 612, 618
         }

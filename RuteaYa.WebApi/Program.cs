@@ -14,6 +14,7 @@ builder.Services.AddDbContext<RuteaYaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IViajeService, ViajeService>();
 
 var app = builder.Build();
 
