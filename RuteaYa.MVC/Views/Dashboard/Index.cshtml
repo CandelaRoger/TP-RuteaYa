@@ -1,0 +1,99 @@
+@model RuteaYa.DTOs.DashboardDto
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h2 class="fw-bold text-brand">¡Hola de nuevo, @Model.NombreUsuario!</h2>
+        <p class="text-muted">Resumen de tu actividad en la plataforma.</p>
+    </div>
+    <div class="col-md-6 text-end">
+        <a href="~/Envios/Crear" class="btn btn-outline-primary rounded-pill px-4 me-2">Nuevo Envío</a>
+        <a href="~/Viajes/Crear" class="btn btn-brand rounded-pill px-4">Nuevo Viaje</a>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="card card-custom p-4 bg-white text-center">
+            <h1 class="display-4 fw-bold text-primary">@Model.CantProximosViajes</h1>
+            <p class="text-muted mb-0 text-uppercase small fw-bold">Viajes Activos</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-4 bg-white text-center">
+            <h1 class="display-4 fw-bold text-warning">@Model.CantEnviosPendientes</h1>
+            <p class="text-muted mb-0 text-uppercase small fw-bold">Envíos Pendientes</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-4 bg-white text-center">
+            <h1 class="display-4 fw-bold text-info">@Model.CantOportunidades</h1>
+            <p class="text-muted mb-0 text-uppercase small fw-bold">Oportunidades</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-4 text-center bg-success text-white">
+            <h1 class="display-5 fw-bold mt-2">$@Model.PotencialDelMes.ToString("N0")</h1>
+            <p class="mb-0 text-uppercase small fw-bold opacity-75">Potencial Mensual</p>
+        </div>
+    </div>
+</div>
+
+
+<div class="row g-4">
+    
+    <div class="col-md-6">
+        <div class="card card-custom bg-white p-4 h-100">
+            <h5 class="fw-bold mb-4 border-bottom pb-2">Tus próximos viajes</h5>
+
+            @if (Model.ProximosViajes != null && Model.ProximosViajes.Any())
+            {
+                @foreach (var viaje in Model.ProximosViajes)
+                {
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="fw-bold mb-1"><i class="bi bi-geo-alt text-primary"></i> @viaje.Origen &rarr; @viaje.Destino</h6>
+                            <small class="text-muted">@viaje.Dias | @viaje.Horario hs</small>
+                        </div>
+                        <span class="badge @(viaje.Activo ? "bg-success-subtle text-success border border-success" : "bg-secondary-subtle text-secondary border")">
+                            @(viaje.Activo ? "Activo" : "Inactivo")
+                        </span>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted text-center my-3">No tenés viajes activos registrados.</p>
+            }
+        </div>
+    </div>
+
+    
+    <div class="col-md-6">
+        <div class="card card-custom bg-white p-4 h-100">
+            <h5 class="fw-bold mb-4 border-bottom pb-2">Tus envíos pendientes</h5>
+
+            @if (Model.EnviosPendientes != null && Model.EnviosPendientes.Any())
+            {
+                @foreach (var envio in Model.EnviosPendientes)
+                {
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="fw-bold mb-1"><i class="bi bi-box text-warning"></i> @envio.Origen &rarr; @envio.Destino</h6>
+                            <small class="text-muted">@envio.Descripcion &bull; Pago: <strong>$@envio.Monto.ToString("N0")</strong></small>
+                        </div>
+                        <span class="badge bg-warning-subtle text-warning border border-warning">@envio.Estado</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted text-center my-3">No tenés envíos pendientes en este momento.</p>
+            }
+
+            <a href="~/Oportunidades" class="btn btn-light w-100 text-primary fw-bold mt-auto border">Ver Oportunidades Macheables</a>
+        </div>
+    </div>
+</div>

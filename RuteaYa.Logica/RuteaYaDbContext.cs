@@ -13,6 +13,7 @@ namespace RuteaYa.Logica
         public DbSet<Viaje> Viajes { get; set; } = null!;
         public DbSet<Parada> Paradas { get; set; } = null!;
         public DbSet<ViajeDia> ViajeDias { get; set; } = null!;
+        public DbSet<Envio> Envios { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -42,6 +43,12 @@ namespace RuteaYa.Logica
                 .WithMany(v => v.DiasSemana)
                 .HasForeignKey(vd => vd.ViajeId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Envio>()
+                .HasOne(e => e.Usuario)
+                .WithMany()
+                .HasForeignKey(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

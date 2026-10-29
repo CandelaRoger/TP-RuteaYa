@@ -22,6 +22,70 @@ namespace RuteaYa.Logica.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("RuteaYa.Entidades.Envio", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DestinoDir")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("DestinoLat")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("DestinoLng")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("MontoOfrecido")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OrigenDir")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("OrigenLat")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("OrigenLng")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("Peso")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Tamanio")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("Envios");
+                });
+
             modelBuilder.Entity("RuteaYa.Entidades.Parada", b =>
                 {
                     b.Property<int>("Id")
@@ -164,6 +228,17 @@ namespace RuteaYa.Logica.Migrations
                     b.HasKey("ViajeId", "DiaSemana");
 
                     b.ToTable("ViajeDias");
+                });
+
+            modelBuilder.Entity("RuteaYa.Entidades.Envio", b =>
+                {
+                    b.HasOne("RuteaYa.Entidades.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("RuteaYa.Entidades.Parada", b =>
