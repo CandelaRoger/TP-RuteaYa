@@ -9,6 +9,7 @@ namespace RuteaYa.MVC.Mappings
         public MappingProfile()
         {
             CreateMap<RegistroViewModel, RegistroDto>();
+            CreateMap<LoginViewModel, LoginDto>();
         }
 
     }
