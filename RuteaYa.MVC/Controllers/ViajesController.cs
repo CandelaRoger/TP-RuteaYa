@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RuteaYa.DTOs;
 using RuteaYa.MVC.Models;
 
 namespace RuteaYa.MVC.Controllers
 {
+    [Authorize]
     public class ViajesController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -32,13 +34,15 @@ namespace RuteaYa.MVC.Controllers
 
         // GET: /Viajes/Crear
         [HttpGet]
+       
         public IActionResult Crear()
         {
             return View(new CrearViajeViewModel());
         }
 
-        // POST: /Viajes/Crear
+        
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(CrearViajeViewModel model)
         {
             if (model.DiasSeleccionados == null || model.DiasSeleccionados.Count == 0)
@@ -49,7 +53,7 @@ namespace RuteaYa.MVC.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            // Mapeo manual del ViewModel al DTO que viaja a la API
+            // Mapeo del ViewModel al DTO que consume la Web API
             var dto = new CrearViajeDto
             {
                 Origen = model.Origen,
@@ -66,14 +70,21 @@ namespace RuteaYa.MVC.Controllers
             };
 
             var client = _httpClientFactory.CreateClient("RuteaYaApi");
-            var response = await client.PostAsJsonAsync("api/viajes", dto);
+            var response = await client.PostAsJsonAsync("api/viajesApi", dto);
 
+            // 1. Caso de Éxito (HTTP 200 / 201)
             if (response.IsSuccessStatusCode)
             {
-                TempData["MensajeExito"] = $"Viaje {model.Origen} → {model.Destino} creado con éxito.";
+                TempData["MensajeExito"] = "Nuevo viaje creado con éxito";
                 return RedirectToAction(nameof(Index));
             }
 
+            // 2. Manejo seguro de errores en caso de fallo
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                ModelState.AddModelError(string.Empty, "Tu sesión expiro. Por favor, vuelve a iniciar sesión.");
+                return View(model);
+            }
             var error = await response.Content.ReadFromJsonAsync<RespuestaErrorApi>();
             ModelState.AddModelError(string.Empty, error?.Mensaje ?? "No se pudo crear el viaje.");
             return View(model);

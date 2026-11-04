@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using RuteaYa.MVC.Handlers;
 using RuteaYa.MVC.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,16 +7,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile(typeof(MappingProfile)));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<BearerTokenHandler>();
 builder.Services.AddHttpClient("RuteaYaApi", client =>
 {
     var baseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7086";
     client.BaseAddress = new Uri(baseUrl);
-});
+}).AddHttpMessageHandler<BearerTokenHandler>(); 
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Auth/Login"; // A dónde redirigir si no está autenticado
+        options.LoginPath = "/Auth/Login"; 
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
+       
     });
 
 
