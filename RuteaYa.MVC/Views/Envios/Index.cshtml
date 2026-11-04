@@ -1,0 +1,105 @@
+﻿@model List<RuteaYa.DTOs.EnvioDto>
+@{
+    ViewData["Title"] = "Mis Envíos";
+    string filtro = ViewBag.FiltroActual ?? "Todos";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">Mis envíos</h2>
+        <p class="text-muted mb-0">Seguí el estado de los paquetes que publicaste para transportar.</p>
+    </div>
+    <a asp-action="Crear" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
+        + Nuevo envío
+    </a>
+</div>
+
+@*  *@
+<div class="d-flex flex-wrap gap-2 mb-4">
+    @{
+        var filtros = new[] { "Todos", "Buscando conductor", "Conductor asignado", "Entregado", "Cancelado" };
+    }
+    @foreach (var f in filtros)
+    {
+        <a asp-action="Index" asp-route-filtro="@f"
+           class="btn rounded-pill px-3 @(filtro == f ? "btn-primary" : "btn-white bg-white text-muted shadow-sm")">
+            @f
+        </a>
+    }
+</div>
+
+@*  *@
+@if (Model == null || Model.Count == 0)
+{
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+        <h5 class="text-muted fw-normal mb-3">No tenés envíos registrados con este filtro.</h5>
+        <div>
+            <a asp-action="Crear" class="btn btn-outline-primary rounded-pill px-4">Publicar tu primer envío</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column gap-3">
+        @foreach (var envio in Model)
+        {
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <div class="row align-items-center g-3">
+                    <div class="col-md-5">
+                        <div class="fw-bold fs-5 text-dark mb-1">
+                            @envio.OrigenDir <span class="text-primary">→</span> @envio.DestinoDir
+                        </div>
+                        <div class="text-secondary fw-semibold small mb-1">
+                             @envio.Descripcion
+                        </div>
+                        <div class="text-muted small">
+                            <span> Fecha límite: @envio.FechaTexto</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 text-muted small">
+                        <div>Tamaño: <strong>@envio.Tamanio</strong> · Peso: <strong>@envio.Peso kg</strong></div>
+                        <div class="fs-5 fw-bold text-success mt-1">
+                            $@envio.MontoOfrecido.ToString("N0")
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 d-flex justify-content-md-end align-items-center gap-2">
+                        @*  *@
+                        @if (envio.Estado == "Buscando conductor")
+                        {
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2">Buscando conductor</span>
+                        }
+                        else if (envio.Estado == "Conductor asignado")
+                        {
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2">Conductor asignado</span>
+                        }
+                        else if (envio.Estado == "Entregado")
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">Entregado</span>
+                        }
+                        else if (envio.Estado == "Cancelado")
+                        {
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2">Cancelado</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2">@envio.Estado</span>
+                        }
+
+                        @* *@
+                        @if (envio.Estado == "Buscando conductor" || envio.Estado == "Conductor asignado")
+                        {
+                            <form asp-action="Cancelar" asp-route-id="@envio.Id" method="post" class="d-inline m-0">
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                                        onclick="return confirm('¿Seguro que deseás cancelar este envío?');">
+                                    Cancelar
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

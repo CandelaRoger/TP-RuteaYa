@@ -9,32 +9,35 @@
 </head>
 <body class="bg-light">
 
-    @* Barra de navegación superior con el estilo de Belén *@
+    @*  *@
     <nav class="navbar navbar-expand-lg navbar-white bg-white shadow-sm py-3 mb-4">
         <div class="container">
-            <a class="navbar-brand fw-bold text-primary fs-4" asp-controller="Viajes" asp-action="Index">RuteaYa</a>
+            <a class="navbar-brand fw-bold text-primary fs-4" asp-controller="Dashboard" asp-action="Index">RuteaYa</a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navMenu">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold px-3 text-secondary" asp-controller="Dashboard" asp-action="Index">Inicio</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link fw-semibold px-3 text-secondary" asp-controller="Viajes" asp-action="Index">Mis viajes</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link fw-semibold px-3 text-secondary" asp-controller="Viajes" asp-action="Crear">+ Nuevo viaje</a>
+                        <a class="nav-link fw-semibold px-3 text-secondary" asp-controller="Envios" asp-action="Index">Mis envíos</a>
                     </li>
                 </ul>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="text-muted small">Juan Pérez</span>
-                    <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Cerrar sesión</a>
+                <div class="d-flex align-items-center gap-2">
+                    <a asp-controller="Envios" asp-action="Crear" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">+ Publicar envío</a>
+                    <a asp-controller="Viajes" asp-action="Crear" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">+ Nuevo viaje</a>
+                    <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-secondary btn-sm rounded-pill px-3 ms-2">Cerrar sesión</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        @* Mensajes de éxito (Toasts / Alertas suaves) *@
         @if (TempData["MensajeExito"] != null)
         {
             <div class="alert alert-success border-0 shadow-sm rounded-4 alert-dismissible fade show mb-4" role="alert">
