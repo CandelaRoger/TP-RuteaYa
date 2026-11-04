@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization; 
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.DTOs;
 using RuteaYa.MVC.Models;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace RuteaYa.MVC.Controllers;
 
+[Authorize] 
 public class DashboardController : Controller
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -15,16 +19,39 @@ public class DashboardController : Controller
     }
     public async Task<IActionResult> Index()
     {
-        int usuarioId = 1; //sesion de pruebs
-        DashboardDto? dashboardData = null;
+        
+        // Buscamos el ID tanto por ClaimTypes.NameIdentifier como por "sub" (JWT standard)
+        var usuarioIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                           ?? User.FindFirstValue("sub")
+                           ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
 
+        if (string.IsNullOrEmpty(usuarioIdStr) || !int.TryParse(usuarioIdStr, out int usuarioId))
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        DashboardDto? dashboardData = null;
+        
         try
         {
             
             var client = _httpClientFactory.CreateClient("RuteaYaApi");
+            var token = await HttpContext.GetTokenAsync("jwt");
 
-           
-            dashboardData = await client.GetFromJsonAsync<DashboardDto>($"api/dashboard/{usuarioId}");
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Adjuntamos el token en la cabecera (Bearer) para que la API sepa quién hace la petición
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            }
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            dashboardData = await client.GetFromJsonAsync<DashboardDto>($"api/dashboard/{usuarioId}", options);
+
         }
         catch (Exception ex)
         {
@@ -33,7 +60,6 @@ public class DashboardController : Controller
         }
 
         
-        dashboardData ??= new DashboardDto();
 
         return View(dashboardData);
     }
