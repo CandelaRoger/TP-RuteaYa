@@ -20,7 +20,7 @@ namespace RuteaYa.MVC.Controllers
         public async Task<IActionResult> Index(string filtro = "Activos")
         {
             var client = _httpClientFactory.CreateClient("RuteaYaApi");
-            var response = await client.GetAsync($"api/viajes?filtro={filtro}");
+            var response = await client.GetAsync($"api/viajesApi?filtro={filtro}");
 
             List<ViajeDto> viajes = new();
             if (response.IsSuccessStatusCode)
@@ -95,7 +95,7 @@ namespace RuteaYa.MVC.Controllers
         public async Task<IActionResult> Desactivar(int id)
         {
             var client = _httpClientFactory.CreateClient("RuteaYaApi");
-            var request = new HttpRequestMessage(HttpMethod.Patch, $"api/viajes/{id}/desactivar");
+            var request = new HttpRequestMessage(HttpMethod.Patch, $"api/viajesApi/{id}/desactivar");
             var response = await client.SendAsync(request);
 
             if (response.IsSuccessStatusCode)

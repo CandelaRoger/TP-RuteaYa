@@ -23,7 +23,7 @@ namespace RuteaYa.MVC.Controllers
         public async Task<IActionResult> Index(string filtro = "Todos")
         {
             var client = await CrearClienteConAuthAsync();
-            var response = await client.GetAsync($"api/envios?estado={filtro}");
+            var response = await client.GetAsync($"api/enviosApi?estado={filtro}");
 
             List<EnvioDto> envios = new();
             if (response.IsSuccessStatusCode)
@@ -64,7 +64,7 @@ namespace RuteaYa.MVC.Controllers
             };
 
             var client = await CrearClienteConAuthAsync();
-            var response = await client.PostAsJsonAsync("api/envios", dto);
+            var response = await client.PostAsJsonAsync("api/enviosApi", dto);
 
             if (response.IsSuccessStatusCode)
             {
@@ -81,7 +81,7 @@ namespace RuteaYa.MVC.Controllers
         public async Task<IActionResult> Cancelar(int id)
         {
             var client = await CrearClienteConAuthAsync();
-            var request = new HttpRequestMessage(HttpMethod.Patch, $"api/envios/{id}/cancelar");
+            var request = new HttpRequestMessage(HttpMethod.Patch, $"api/enviosApi/{id}/cancelar");
             var response = await client.SendAsync(request);
 
             if (response.IsSuccessStatusCode)
