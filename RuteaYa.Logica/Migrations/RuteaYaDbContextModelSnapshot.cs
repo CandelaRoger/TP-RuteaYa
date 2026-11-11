@@ -79,9 +79,14 @@ namespace RuteaYa.Logica.Migrations
                     b.Property<int>("UsuarioId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ViajeId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UsuarioId");
+
+                    b.HasIndex("ViajeId");
 
                     b.ToTable("Envios");
                 });
@@ -238,7 +243,14 @@ namespace RuteaYa.Logica.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("RuteaYa.Entidades.Viaje", "Viaje")
+                        .WithMany()
+                        .HasForeignKey("ViajeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Usuario");
+
+                    b.Navigation("Viaje");
                 });
 
             modelBuilder.Entity("RuteaYa.Entidades.Parada", b =>

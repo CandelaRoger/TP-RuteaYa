@@ -82,6 +82,22 @@ else
                                 @(viaje.Activo ? "Desactivar" : "Activar")
                             </button>
                         </form>
+                        @if (viaje.Activo)
+                        {
+                           <a asp-controller="Oportunidades"
+       asp-action="Index"
+       asp-route-viajeId="@viaje.Id"
+       class="btn btn-success">
+        Ver oportunidades
+    </a>
+
+    <a asp-controller="Oportunidades"
+       asp-action="Asignados"
+       asp-route-viajeId="@viaje.Id"
+       class="btn btn-outline-primary">
+        Mis envíos asignados
+    </a>                        
+                        }
                     </div>
                 </div>
             </div>
