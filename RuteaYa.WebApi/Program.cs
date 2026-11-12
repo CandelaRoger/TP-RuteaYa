@@ -3,8 +3,14 @@ using RuteaYa.Logica;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using RuteaYa.Logica.Rutas;
 
 var builder = WebApplication.CreateBuilder(args);
+var hereApiKey = builder.Configuration["Here:ApiKey"];
+if (string.IsNullOrWhiteSpace(hereApiKey))
+{
+    throw new InvalidOperationException("No se configuró la API Key de HERE.");
+}
 // 1. Configurar JWT Authentication
 var jwtKey = builder.Configuration["JwtSettings:SecretKey"] ; // Usar tu clave de appsettings
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -34,6 +40,7 @@ builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IEnvioService, EnvioService>();
+builder.Services.AddHttpClient<IRutaService, HereRutaService>();
 
 var app = builder.Build();
 
