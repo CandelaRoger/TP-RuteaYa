@@ -15,9 +15,6 @@ namespace RuteaYa.Entidades
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
         public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
-
-        // Relaciones 1:N 
         public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
-        // public ICollection<Envio> Envios { get; set; } = new List<Envio>();
     }
 }

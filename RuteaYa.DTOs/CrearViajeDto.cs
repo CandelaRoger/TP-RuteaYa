@@ -1,18 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace RuteaYa.DTOs
 {
     public class CrearViajeDto
     {
+        [Required(ErrorMessage = "El origen es obligatorio.")]
         public string Origen { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El destino es obligatorio.")]
         public string Destino { get; set; } = string.Empty;
 
-        // lista de paradas intermedias
         public List<string> Paradas { get; set; } = new();
 
-        // 1 = Lunes, 2 = Martes, 3 = Miercoles, 4 = Jueves, 5 = Viernes, 6 = Sabado, 7 = Domingo
+        [Required(ErrorMessage = "Debe seleccionar al menos un día.")]
+        [MinLength(1, ErrorMessage = "Debe seleccionar al menos un día.")]
         public List<byte> DiasSemana { get; set; } = new();
 
         public TimeSpan HoraSalida { get; set; }

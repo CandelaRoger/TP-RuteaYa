@@ -9,6 +9,7 @@ namespace RuteaYa.Logica
     public interface IViajeService
     {
         Task<ResultadoOperacion<ViajeDto>> CrearViajeAsync(CrearViajeDto dto, int usuarioId);
+        Task<ResultadoOperacion<ViajeDto>> ActualizarViajeAsync(int viajeId, CrearViajeDto dto, int usuarioId);
         Task<List<ViajeDto>> ObtenerViajesPorUsuarioAsync(int usuarioId, string? filtro = "Todos");
         Task<ViajeDto?> ObtenerViajePorIdAsync(int viajeId, int usuarioId);
         Task<ResultadoOperacion<bool>> CambiarEstadoActivoAsync(int viajeId, int usuarioId);

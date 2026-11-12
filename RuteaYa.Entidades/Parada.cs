@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RuteaYa.Entidades
@@ -25,7 +22,6 @@ namespace RuteaYa.Entidades
         [Column(TypeName = "decimal(9,6)")]
         public decimal Lng { get; set; }
 
-        // Propiedad de navegación
         public Viaje Viaje { get; set; } = null!;
     }
 }

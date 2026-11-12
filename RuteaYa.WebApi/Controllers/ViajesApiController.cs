@@ -63,6 +63,34 @@ namespace RuteaYa.WebApi.Controllers
             return Ok(resultado.Datos);
         }
 
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Actualizar(int id, [FromBody] CrearViajeDto dto)
+        {
+            string? usuarioIdClaim = ExtraerIdDelClaim();
+
+            if (!int.TryParse(usuarioIdClaim, out int usuarioId))
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "Inicie sesión nuevamente."
+                });
+            }
+
+            var resultado = await _viajeService.ActualizarViajeAsync(
+                id, dto, usuarioId);
+
+            if (!resultado.Exitoso)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.MensajeError
+                });
+            }
+
+            return Ok(resultado.Datos);
+        }
+
         [HttpPatch("{id}/desactivar")]
         public async Task<IActionResult> CambiarEstado(int id)
         {

@@ -11,8 +11,6 @@ namespace RuteaYa.DTOs
         public int  CantEnviosPendientes { get; set; }
         public int CantOportunidades { get; set; }
         public decimal PotencialDelMes { get; set; }
-
-        //listas resumidas
          public List<ViajeResumenDto> ProximosViajes { get; set; }
          public List<EnvioResumenDto> EnviosPendientes {get; set;}
 
