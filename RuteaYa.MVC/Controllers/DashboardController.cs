@@ -20,7 +20,6 @@ public class DashboardController : Controller
     public async Task<IActionResult> Index()
     {
         
-        // Buscamos el ID tanto por ClaimTypes.NameIdentifier como por "sub" (JWT standard)
         var usuarioIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
                            ?? User.FindFirstValue("sub")
                            ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
@@ -40,7 +39,6 @@ public class DashboardController : Controller
 
             if (!string.IsNullOrEmpty(token))
             {
-                // Adjuntamos el token en la cabecera (Bearer) para que la API sepa quién hace la petición
                 client.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -64,15 +62,4 @@ public class DashboardController : Controller
         return View(dashboardData);
     }
 
- 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
-
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-    }
 }

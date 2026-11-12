@@ -1,0 +1,184 @@
+﻿@model RuteaYa.DTOs.ViajeDto
+
+@{
+    ViewData["Title"] = "Detalle del viaje";
+}
+@section Styles {
+    <link rel="stylesheet"
+          href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
+}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Detalle del viaje</h2>
+            <p class="text-muted mb-0">Información de tu recorrido habitual.</p>
+        </div>
+
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+            Volver a mis viajes
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <h5 class="fw-bold mb-3">Recorrido</h5>
+
+        <div class="mb-2">
+            <strong>Origen:</strong> @Model.OrigenDir
+        </div>
+
+        @if (Model.Paradas != null && Model.Paradas.Any())
+        {
+            <div class="mb-2">
+                <strong>Paradas:</strong>
+                <ol>
+                    @foreach (var parada in Model.Paradas.OrderBy(p => p.Orden))
+                    {
+                        <li>@parada.Direccion</li>
+                    }
+                </ol>
+            </div>
+        }
+
+        <div class="mb-3">
+            <strong>Destino:</strong> @Model.DestinoDir
+        </div>
+
+        <hr />
+
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Distancia:</strong> @Model.DistanciaKm km
+            </div>
+            <div class="col-md-4">
+                <strong>Duración:</strong> @Model.DuracionMin minutos
+            </div>
+            <div class="col-md-4">
+                <strong>Horario:</strong> @Model.HorarioTexto
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mb-4">
+
+    <a asp-action="Editar"
+       asp-route-id="@Model.Id"
+       class="btn btn-warning rounded-pill px-4">
+        <i class="bi bi-pencil"></i> Editar viaje
+    </a>
+
+    @if (Model.Activo)
+    {
+        <form asp-action="Desactivar"
+              asp-route-id="@Model.Id"
+              method="post">
+
+            <button type="submit"
+                    class="btn btn-outline-danger rounded-pill px-4">
+                <i class="bi bi-power"></i> Desactivar viaje
+            </button>
+        </form>
+    }
+    else
+    {
+        <span class="badge bg-secondary align-self-center">
+            Viaje desactivado
+        </span>
+    }
+
+</div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <h5 class="fw-bold mb-3">Mapa del recorrido</h5>
+
+        <div id="mapa" style="width: 100%; height: 450px;"></div>
+
+    </div>
+   
+</div>
+
+@section Scripts {
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
+    <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
+
+    <script>
+        const apiKey = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((string)ViewBag.HereApiKey));
+
+        const origen = {
+            lat: @Model.OrigenLat.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            lng: @Model.OrigenLng.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+
+        const destino = {
+            lat: @Model.DestinoLat.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            lng: @Model.DestinoLng.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+
+        const paradas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                    Model.Paradas.Select(p => new { lat = p.Lat, lng = p.Lng, direccion = p.Direccion })
+            ));
+
+        const puntosRuta = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PuntosRuta));
+
+        const platform = new H.service.Platform({
+            apikey: apiKey
+        });
+
+        const capas = platform.createDefaultLayers();
+
+        const mapa = new H.Map(
+            document.getElementById('mapa'),
+            capas.vector.normal.map,
+            {
+                zoom: 13,
+                center: origen,
+                pixelRatio: window.devicePixelRatio || 1
+            }
+        );
+
+        window.addEventListener('resize', () => mapa.getViewPort().resize());
+
+        const eventos = new H.mapevents.MapEvents(mapa);
+        new H.mapevents.Behavior(eventos);
+        H.ui.UI.createDefault(mapa, capas);
+
+        // Marcador de origen
+        mapa.addObject(new H.map.Marker(origen));
+
+        // Marcadores de las paradas
+        paradas.forEach(parada => {
+            mapa.addObject(new H.map.Marker({
+                lat: Number(parada.lat),
+                lng: Number(parada.lng)
+            }));
+        });
+
+        // Marcador de destino
+        mapa.addObject(new H.map.Marker(destino));
+
+        // Dibujar recorrido calculado por HERE
+        if (puntosRuta && puntosRuta.length > 0) {
+            const linea = new H.geo.LineString();
+
+            puntosRuta.forEach(punto => {
+                linea.pushPoint({
+                    lat: punto.Latitud,
+                    lng: punto.Longitud
+                });
+            });
+
+            const recorrido = new H.map.Polyline(linea, {
+                style: {
+                    strokeColor: '#1769aa',
+                    lineWidth: 5
+                }
+            });
+
+            mapa.addObject(recorrido);
+
+            mapa.getViewModel().setLookAtData({
+                bounds: recorrido.getBoundingBox()
+            });
+        }
+    </script>
+}

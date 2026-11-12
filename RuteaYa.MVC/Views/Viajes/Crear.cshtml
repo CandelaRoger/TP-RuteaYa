@@ -14,25 +14,67 @@
 
                 @* Origen y Destino *@
                 <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label asp-for="Origen" class="form-label small text-muted fw-semibold">Origen</label>
-                        <input asp-for="Origen" class="form-control form-control-lg bg-light border-0" placeholder="¿Desde dónde salís? (Ej: Belgrano)" />
-                        <span asp-validation-for="Origen" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Destino" class="form-label small text-muted fw-semibold">Destino</label>
-                        <input asp-for="Destino" class="form-control form-control-lg bg-light border-0" placeholder="¿A dónde llegás? (Ej: Lomas de Zamora)" />
-                        <span asp-validation-for="Destino" class="text-danger small"></span>
-                    </div>
+                   <div class="col-md-6">
+              <label asp-for="Origen" class="form-label small text-muted fw-semibold">Origen</label>
+
+                <div class="position-relative">
+                  <input asp-for="Origen"
+               id="Origen"
+               class="form-control form-control-lg bg-light border-0"
+               placeholder="Escribí una dirección o lugar..."
+               autocomplete="off" />
+
+        <div id="sugerenciasOrigen"
+             class="list-group position-absolute w-100 shadow-sm"
+             style="z-index: 1000; display: none;">
+        </div>
+    </div>
+
+    <span asp-validation-for="Origen" class="text-danger small"></span>
+</div>
+                   <div class="col-md-6">
+    <label asp-for="Destino" class="form-label small text-muted fw-semibold">Destino</label>
+
+    <div class="position-relative">
+        <input asp-for="Destino"
+               id="Destino"
+               class="form-control form-control-lg bg-light border-0"
+               placeholder="¿A dónde llegás?"
+               autocomplete="off" />
+
+        <div id="sugerenciasDestino"
+             class="list-group position-absolute w-100 shadow-sm"
+             style="z-index: 1000; display: none;">
+        </div>
+    </div>
+
+    <span asp-validation-for="Destino" class="text-danger small"></span>
+</div>
                 </div>
 
                 @* Paradas intermedias *@
                 <div class="mb-4">
-                    <label asp-for="ParadasTexto" class="form-label small text-muted fw-semibold">Paradas intermedias (opcional)</label>
-                    <input asp-for="ParadasTexto" class="form-control bg-light border-0" placeholder="Separadas por coma. Ej: Caballito, Lanús" />
-                    <span class="text-muted small">Podés agregar lugares por donde pasás habitualmente.</span>
-                </div>
+    <label asp-for="ParadasTexto" class="form-label small text-muted fw-semibold">
+        Paradas intermedias (opcional)
+    </label>
 
+    <div class="position-relative">
+        <input asp-for="ParadasTexto"
+               id="ParadasTexto"
+               class="form-control bg-light border-0"
+               placeholder="Escribí una parada y seleccionala..." 
+               autocomplete="off" />
+
+        <div id="sugerenciasParadas"
+             class="list-group position-absolute w-100 shadow-sm"
+             style="z-index: 1000; display: none;">
+        </div>
+    </div>
+
+    <span class="text-muted small">
+        Podés agregar varias paradas, seleccionando cada lugar.
+    </span>
+</div>
                 @* Selector de Días de la semana con botones toggle pill *@
                 <div class="mb-4">
                     <label class="form-label small text-muted fw-semibold d-block">Días de la semana que realizás el viaje</label>
@@ -92,3 +134,122 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function configurarAutocompletado(campo, contenedor, obtenerTexto, seleccionarLugar) {
+            let temporizador;
+            let ultimaBusqueda = 0;
+
+            campo.addEventListener("input", function () {
+                clearTimeout(temporizador);
+
+                const texto = obtenerTexto().trim();
+                const busquedaActual = ++ultimaBusqueda;
+
+                contenedor.innerHTML = "";
+                contenedor.style.display = "none";
+
+                if (texto.length < 3)
+                    return;
+
+                temporizador = setTimeout(async () => {
+                    try {
+                        const respuesta = await fetch(
+                            `/Viajes/BuscarDirecciones?texto=${encodeURIComponent(texto)}`
+                        );
+
+                        if (!respuesta.ok)
+                            return;
+
+                        const lugares = await respuesta.json();
+
+                        if (busquedaActual !== ultimaBusqueda ||
+                            obtenerTexto().trim() !== texto)
+                            return;
+
+                        contenedor.innerHTML = "";
+
+                        lugares.forEach(lugar => {
+                            const opcion = document.createElement("button");
+                            opcion.type = "button";
+                            opcion.className = "list-group-item list-group-item-action";
+
+                            const titulo = document.createElement("strong");
+                            titulo.textContent = lugar.titulo;
+
+                            const direccion = document.createElement("small");
+                            direccion.className = "d-block text-muted";
+                            direccion.textContent = lugar.direccion;
+
+                            opcion.appendChild(titulo);
+                            opcion.appendChild(direccion);
+
+                            opcion.addEventListener("click", function () {
+                                seleccionarLugar(lugar);
+                                contenedor.innerHTML = "";
+                                contenedor.style.display = "none";
+                            });
+
+                            contenedor.appendChild(opcion);
+                        });
+
+                        contenedor.style.display =
+                            lugares.length > 0 ? "block" : "none";
+                    }
+                    catch (error) {
+                        console.error("Error al buscar direcciones:", error);
+                    }
+                }, 350);
+            });
+
+            document.addEventListener("click", function (evento) {
+                if (!campo.contains(evento.target) &&
+                    !contenedor.contains(evento.target)) {
+                    contenedor.style.display = "none";
+                }
+            });
+        }
+
+        configurarAutocompletado(
+            document.getElementById("Origen"),
+            document.getElementById("sugerenciasOrigen"),
+            () => document.getElementById("Origen").value,
+            lugar => {
+                document.getElementById("Origen").value = lugar.direccion;
+            }
+        );
+
+        configurarAutocompletado(
+            document.getElementById("Destino"),
+            document.getElementById("sugerenciasDestino"),
+            () => document.getElementById("Destino").value,
+            lugar => {
+                document.getElementById("Destino").value = lugar.direccion;
+            }
+        );
+
+        configurarAutocompletado(
+            document.getElementById("ParadasTexto"),
+            document.getElementById("sugerenciasParadas"),
+            () => {
+                const valor = document.getElementById("ParadasTexto").value;
+                return valor.substring(valor.lastIndexOf(",") + 1);
+            },
+            lugar => {
+                const campo = document.getElementById("ParadasTexto");
+                const valor = campo.value;
+                const ultimaComa = valor.lastIndexOf(",");
+
+                const anteriores = ultimaComa >= 0
+                    ? valor.substring(0, ultimaComa + 1) + " "
+                    : "";
+
+                campo.value = anteriores + lugar.direccion + ", ";
+                campo.focus();
+            }
+        );
+    </script>
+}
+
+}

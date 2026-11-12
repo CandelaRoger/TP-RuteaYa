@@ -1,117 +1,166 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using RuteaYa.DTOs;
 using RuteaYa.Entidades;
+using RuteaYa.Logica.Rutas;
 
 namespace RuteaYa.Logica
 {
     public class ViajeService : IViajeService
     {
         private readonly RuteaYaDbContext _context;
+        private readonly IRutaService _rutaService;
 
-        public ViajeService(RuteaYaDbContext context)
+
+        public ViajeService(RuteaYaDbContext context, IRutaService rutaService)
         {
             _context = context;
+            _rutaService = rutaService;
+
         }
 
-        public async Task<ResultadoOperacion<ViajeDto>> CrearViajeAsync(CrearViajeDto dto, int usuarioId)
-
+        public async Task<ResultadoOperacion<ViajeDto>> CrearViajeAsync(
+            CrearViajeDto dto, int usuarioId)
         {
-            // 0. Validar que el usuario exista en la base de datos
-            var existeUsuario = await _context.Usuarios.AnyAsync(u => u.Id == usuarioId);
+            var existeUsuario = await _context.Usuarios
+                .AnyAsync(u => u.Id == usuarioId);
+
             if (!existeUsuario)
-                return ResultadoOperacion<ViajeDto>.Falla($"El usuario con ID {usuarioId} no existe. Por favor registrate primero.");
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    $"El usuario con ID {usuarioId} no existe.");
 
-            // 1. Validaciones básicas obligatorias (Reglas del PDF)
-            if (string.IsNullOrWhiteSpace(dto.Origen))
-                return ResultadoOperacion<ViajeDto>.Falla("El origen es obligatorio.");
+            var errorValidacion = ValidarViaje(dto);
 
-            if (string.IsNullOrWhiteSpace(dto.Destino))
-                return ResultadoOperacion<ViajeDto>.Falla("El destino es obligatorio.");
+            if (errorValidacion != null)
+                return ResultadoOperacion<ViajeDto>.Falla(errorValidacion);
 
-            if (dto.Origen.Trim().Equals(dto.Destino.Trim(), StringComparison.OrdinalIgnoreCase))
-                return ResultadoOperacion<ViajeDto>.Falla("El origen y el destino deben ser diferentes.");
-
-            if (dto.DiasSemana == null || dto.DiasSemana.Count == 0)
-                return ResultadoOperacion<ViajeDto>.Falla("Debe seleccionar al menos un día de la semana.");
-
-            if (dto.HoraLlegada <= dto.HoraSalida)
-                return ResultadoOperacion<ViajeDto>.Falla("La hora de llegada debe ser posterior a la de salida.");
-
-            if (dto.MaxPaquetes <= 0)
-                return ResultadoOperacion<ViajeDto>.Falla("La cantidad máxima de paquetes debe ser mayor a cero.");
-
-            if (dto.PesoMaxKg <= 0)
-                return ResultadoOperacion<ViajeDto>.Falla("El peso máximo debe ser mayor a cero.");
-
-            if (dto.DesvioMaxKm < 0)
-                return ResultadoOperacion<ViajeDto>.Falla("El desvío máximo no puede ser negativo.");
-
-            // 2. Validaciones de paradas intermedias
             var paradasLimpias = dto.Paradas?
                 .Where(p => !string.IsNullOrWhiteSpace(p))
                 .Select(p => p.Trim())
                 .ToList() ?? new List<string>();
 
-            var paradasUnicas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var p in paradasLimpias)
-            {
-                if (p.Equals(dto.Origen.Trim(), StringComparison.OrdinalIgnoreCase) ||
-                    p.Equals(dto.Destino.Trim(), StringComparison.OrdinalIgnoreCase))
-                {
-                    return ResultadoOperacion<ViajeDto>.Falla($"La parada '{p}' no puede coincidir con el origen o destino.");
-                }
+            Coordenadas? coordenadasOrigen;
 
-                if (!paradasUnicas.Add(p))
-                {
-                    return ResultadoOperacion<ViajeDto>.Falla($"La parada '{p}' está repetida.");
-                }
+            try
+            {
+                coordenadasOrigen = await _rutaService.GeocodificarAsync(
+                    dto.Origen.Trim());
+            }
+            catch (HttpRequestException)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo conectar con el servicio de mapas.");
             }
 
-            // 3. Cálculo de duración en minutos según horarios
-            int duracionMinutos = (int)(dto.HoraLlegada - dto.HoraSalida).TotalMinutes;
+            if (coordenadasOrigen == null)
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo encontrar la dirección de origen.");
 
-            // 4. Estimación de distancia simulada (Mock para cuando no hay API de Google Maps)
-            // Calculamos 18.4 km base + 3 km por cada parada intermedia
-            decimal distanciaEstimada = 18.4m + (paradasLimpias.Count * 3.0m);
+            var coordenadasParadas = new List<Coordenadas>();
 
-            // 5. Crear la entidad Viaje
+            foreach (var parada in paradasLimpias)
+            {
+                Coordenadas? coordenadas;
+
+                try
+                {
+                    coordenadas = await _rutaService.GeocodificarAsync(parada);
+                }
+                catch (HttpRequestException)
+                {
+                    return ResultadoOperacion<ViajeDto>.Falla(
+                        "No se pudo conectar con el servicio de mapas.");
+                }
+
+                if (coordenadas == null)
+                {
+                    return ResultadoOperacion<ViajeDto>.Falla(
+                        $"No se pudo encontrar la dirección de la parada '{parada}'.");
+                }
+
+                coordenadasParadas.Add(coordenadas);
+            }
+
+            Coordenadas? coordenadasDestino;
+
+            try
+            {
+                coordenadasDestino = await _rutaService.GeocodificarAsync(
+                    dto.Destino.Trim());
+            }
+            catch (HttpRequestException)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo conectar con el servicio de mapas.");
+            }
+
+            if (coordenadasDestino == null)
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo encontrar la dirección de destino.");
+
+            var puntosRuta = new List<Coordenadas>
+    {
+        coordenadasOrigen
+    };
+
+            puntosRuta.AddRange(coordenadasParadas);
+            puntosRuta.Add(coordenadasDestino);
+
+            ResultadoRuta? resultadoRuta;
+
+            try
+            {
+                resultadoRuta = await _rutaService.CalcularRutaAsync(
+                    puntosRuta);
+            }
+            catch (HttpRequestException)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo calcular la ruta mediante el servicio de mapas.");
+            }
+
+            if (resultadoRuta == null)
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo calcular el recorrido solicitado.");
+
             var viaje = new Viaje
             {
                 UsuarioId = usuarioId,
+
                 OrigenDir = dto.Origen.Trim(),
-                OrigenLat = -34.5622m, // Coordenadas de prueba (CABA / Belgrano)
-                OrigenLng = -58.4563m,
+                OrigenLat = (decimal)coordenadasOrigen.Latitud,
+                OrigenLng = (decimal)coordenadasOrigen.Longitud,
+
                 DestinoDir = dto.Destino.Trim(),
-                DestinoLat = -34.7618m, // Coordenadas de prueba (GBA / Lomas de Zamora)
-                DestinoLng = -58.4042m,
+                DestinoLat = (decimal)coordenadasDestino.Latitud,
+                DestinoLng = (decimal)coordenadasDestino.Longitud,
+
                 HoraSalida = dto.HoraSalida,
                 HoraLlegada = dto.HoraLlegada,
+
                 MaxPaquetes = dto.MaxPaquetes,
                 PesoMaxKg = dto.PesoMaxKg,
                 DesvioMaxKm = dto.DesvioMaxKm,
-                DistanciaKm = distanciaEstimada,
-                DuracionMin = duracionMinutos,
+
+                DistanciaKm = Math.Round(
+                    (decimal)resultadoRuta.DistanciaKm, 2),
+
+                DuracionMin = (int)Math.Ceiling(
+                    resultadoRuta.DuracionMinutos),
+
                 Activo = true
             };
 
-            // 6. Agregar Paradas con orden secuencial (1, 2, 3...)
-            int orden = 1;
-            foreach (var paradaTexto in paradasLimpias)
+            for (int i = 0; i < paradasLimpias.Count; i++)
             {
                 viaje.Paradas.Add(new Parada
                 {
-                    Orden = orden++,
-                    Direccion = paradaTexto,
-                    Lat = -34.6037m,
-                    Lng = -58.3816m
+                    Orden = i + 1,
+                    Direccion = paradasLimpias[i],
+                    Lat = (decimal)coordenadasParadas[i].Latitud,
+                    Lng = (decimal)coordenadasParadas[i].Longitud
                 });
             }
 
-            // 7. Agregar Días de la semana
             foreach (var dia in dto.DiasSemana.Distinct())
             {
                 viaje.DiasSemana.Add(new ViajeDia
@@ -120,11 +169,166 @@ namespace RuteaYa.Logica
                 });
             }
 
-            // 8. Guardar en Base de Datos
             _context.Viajes.Add(viaje);
+
             await _context.SaveChangesAsync();
 
-            return ResultadoOperacion<ViajeDto>.Ok(MapearAViajeDto(viaje));
+            return ResultadoOperacion<ViajeDto>.Ok(
+                MapearAViajeDto(viaje));
+        }
+
+
+
+        public async Task<ResultadoOperacion<ViajeDto>> ActualizarViajeAsync(
+            int viajeId,
+            CrearViajeDto dto,
+            int usuarioId)
+        {
+            
+            var viaje = await _context.Viajes
+                .Include(v => v.Paradas)
+                .Include(v => v.DiasSemana)
+                .FirstOrDefaultAsync(v => v.Id == viajeId && v.UsuarioId == usuarioId);
+
+            if (viaje == null)
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "El viaje no fue encontrado o no te pertenece.");
+
+            var errorValidacion = ValidarViaje(dto);
+
+            if (errorValidacion != null)
+                return ResultadoOperacion<ViajeDto>.Falla(errorValidacion);
+
+            var paradas = dto.Paradas?
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(p => p.Trim())
+                .ToList() ?? new List<string>();
+
+            Coordenadas? origen;
+
+            try
+            {
+                origen = await _rutaService.GeocodificarAsync(dto.Origen.Trim());
+            }
+            catch (HttpRequestException)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo conectar con el servicio de mapas.");
+            }
+
+            if (origen == null)
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se encontró el origen.");
+
+            var coordenadasParadas = new List<Coordenadas>();
+
+            foreach (var parada in paradas)
+            {
+                Coordenadas? coordenadas;
+
+                try
+                {
+                    coordenadas = await _rutaService.GeocodificarAsync(parada);
+                }
+                catch (HttpRequestException)
+                {
+                    return ResultadoOperacion<ViajeDto>.Falla(
+                        "No se pudo conectar con el servicio de mapas.");
+                }
+
+                if (coordenadas == null)
+                    return ResultadoOperacion<ViajeDto>.Falla(
+                        $"No se encontró la parada '{parada}'.");
+
+                coordenadasParadas.Add(coordenadas);
+            }
+
+            Coordenadas? destino;
+
+            try
+            {
+                destino = await _rutaService.GeocodificarAsync(dto.Destino.Trim());
+            }
+            catch (HttpRequestException)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo conectar con el servicio de mapas.");
+            }
+
+            if (destino == null)
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se encontró el destino.");
+
+            var puntos = new List<Coordenadas> { origen };
+            puntos.AddRange(coordenadasParadas);
+            puntos.Add(destino);
+
+            ResultadoRuta? resultadoRuta;
+
+            try
+            {
+                resultadoRuta = await _rutaService.CalcularRutaAsync(puntos);
+            }
+            catch (HttpRequestException)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo calcular la nueva ruta.");
+            }
+
+            if (resultadoRuta == null)
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se pudo calcular el recorrido solicitado.");
+
+            viaje.OrigenDir = dto.Origen.Trim();
+            viaje.OrigenLat = (decimal)origen.Latitud;
+            viaje.OrigenLng = (decimal)origen.Longitud;
+
+            viaje.DestinoDir = dto.Destino.Trim();
+            viaje.DestinoLat = (decimal)destino.Latitud;
+            viaje.DestinoLng = (decimal)destino.Longitud;
+
+            viaje.HoraSalida = dto.HoraSalida;
+            viaje.HoraLlegada = dto.HoraLlegada;
+            viaje.MaxPaquetes = dto.MaxPaquetes;
+            viaje.PesoMaxKg = dto.PesoMaxKg;
+            viaje.DesvioMaxKm = dto.DesvioMaxKm;
+
+            viaje.DistanciaKm = Math.Round(
+                (decimal)resultadoRuta.DistanciaKm, 2);
+
+            viaje.DuracionMin = (int)Math.Ceiling(
+                resultadoRuta.DuracionMinutos);
+
+            _context.RemoveRange(viaje.Paradas);
+            viaje.Paradas.Clear();
+
+            for (int i = 0; i < paradas.Count; i++)
+            {
+                viaje.Paradas.Add(new Parada
+                {
+                    Orden = i + 1,
+                    Direccion = paradas[i],
+                    Lat = (decimal)coordenadasParadas[i].Latitud,
+                    Lng = (decimal)coordenadasParadas[i].Longitud
+                });
+            }
+
+            _context.RemoveRange(viaje.DiasSemana);
+            viaje.DiasSemana.Clear();
+
+            foreach (var dia in dto.DiasSemana.Distinct())
+            {
+                viaje.DiasSemana.Add(new ViajeDia
+                {
+                    DiaSemana = dia
+                });
+            }
+
+            
+            await _context.SaveChangesAsync();
+
+            return ResultadoOperacion<ViajeDto>.Ok(
+                MapearAViajeDto(viaje));
         }
 
         public async Task<List<ViajeDto>> ObtenerViajesPorUsuarioAsync(int usuarioId, string? filtro = "Todos")
@@ -144,6 +348,8 @@ namespace RuteaYa.Logica
             return viajes.Select(MapearAViajeDto).ToList();
         }
 
+
+
         public async Task<ViajeDto?> ObtenerViajePorIdAsync(int viajeId, int usuarioId)
         {
             var viaje = await _context.Viajes
@@ -151,8 +357,51 @@ namespace RuteaYa.Logica
                 .Include(v => v.DiasSemana)
                 .FirstOrDefaultAsync(v => v.Id == viajeId && v.UsuarioId == usuarioId);
 
-            return viaje == null ? null : MapearAViajeDto(viaje);
+            if (viaje == null)
+                return null;
+
+            var dto = MapearAViajeDto(viaje);
+
+            var puntos = new List<Coordenadas>
+    {
+        new()
+        {
+            Latitud = (double)viaje.OrigenLat,
+            Longitud = (double)viaje.OrigenLng
         }
+    };
+
+            puntos.AddRange(viaje.Paradas
+                .OrderBy(p => p.Orden)
+                .Select(p => new Coordenadas
+                {
+                    Latitud = (double)p.Lat,
+                    Longitud = (double)p.Lng
+                }));
+
+            puntos.Add(new Coordenadas
+            {
+                Latitud = (double)viaje.DestinoLat,
+                Longitud = (double)viaje.DestinoLng
+            });
+
+            var resultadoRuta = await _rutaService.CalcularRutaAsync(puntos);
+
+            if (resultadoRuta != null)
+            {
+                dto.PuntosRuta = resultadoRuta.PuntosRuta
+                    .Select(p => new CoordenadaDto
+                    {
+                        Latitud = p.Latitud,
+                        Longitud = p.Longitud
+                    })
+                    .ToList();
+            }
+
+            return dto;
+        }
+
+
 
         public async Task<ResultadoOperacion<bool>> CambiarEstadoActivoAsync(int viajeId, int usuarioId)
         {
@@ -168,7 +417,6 @@ namespace RuteaYa.Logica
             return ResultadoOperacion<bool>.Ok(viaje.Activo);
         }
 
-        // Método auxiliar para transformar Entidad en DTO y armar textos legibles
         private static ViajeDto MapearAViajeDto(Viaje viaje)
         {
             var diasNombres = new Dictionary<byte, string>
@@ -191,7 +439,11 @@ namespace RuteaYa.Logica
                 Id = viaje.Id,
                 UsuarioId = viaje.UsuarioId,
                 OrigenDir = viaje.OrigenDir,
+                OrigenLat = viaje.OrigenLat,
+                OrigenLng = viaje.OrigenLng,
                 DestinoDir = viaje.DestinoDir,
+                DestinoLat = viaje.DestinoLat,
+                DestinoLng = viaje.DestinoLng,
                 HoraSalida = viaje.HoraSalida,
                 HoraLlegada = viaje.HoraLlegada,
                 MaxPaquetes = viaje.MaxPaquetes,
@@ -215,5 +467,45 @@ namespace RuteaYa.Logica
                     }).ToList()
             };
         }
+  
+
+    
+private string? ValidarViaje(CrearViajeDto dto)
+{
+    if (dto.Origen.Trim().Equals(
+        dto.Destino.Trim(),
+        StringComparison.OrdinalIgnoreCase))
+    {
+        return "El origen y el destino deben ser diferentes.";
     }
+
+    if (dto.HoraLlegada <= dto.HoraSalida)
+        return "La hora de llegada debe ser posterior a la de salida.";
+
+    var paradasLimpias = dto.Paradas?
+        .Where(p => !string.IsNullOrWhiteSpace(p))
+        .Select(p => p.Trim())
+        .ToList() ?? new List<string>();
+
+    var paradasUnicas = new HashSet<string>(
+        StringComparer.OrdinalIgnoreCase);
+
+    foreach (var parada in paradasLimpias)
+    {
+        if (parada.Equals(dto.Origen.Trim(),
+                StringComparison.OrdinalIgnoreCase) ||
+            parada.Equals(dto.Destino.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return $"La parada '{parada}' no puede coincidir con el origen o destino.";
+        }
+
+        if (!paradasUnicas.Add(parada))
+            return $"La parada '{parada}' está repetida.";
+    }
+
+    return null;
+}
+
+}
 }
