@@ -1,0 +1,228 @@
+﻿@model RuteaYa.MVC.Models.CrearViajeViewModel
+
+@{
+    ViewData["Title"] = "Editar viaje";
+}
+
+<div class="container mt-4">
+    <h2>Editar viaje</h2>
+    <p class="text-muted">Modificá los datos de tu recorrido.</p>
+
+    <form asp-action="Editar" method="post">
+
+        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Origen" class="form-label">Origen</label>
+            <input asp-for="Origen" id="Origen" class="form-control" autocomplete="off" />
+            <span asp-validation-for="Origen" class="text-danger"></span>
+            <div id="sugerenciasOrigen" class="list-group"></div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Destino" class="form-label">Destino</label>
+            <input asp-for="Destino" id="Destino" class="form-control" autocomplete="off" />
+            <span asp-validation-for="Destino" class="text-danger"></span>
+            <div id="sugerenciasDestino" class="list-group"></div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ParadasTexto" class="form-label">Paradas</label>
+            <input asp-for="ParadasTexto" id="ParadasTexto" class="form-control" autocomplete="off" />
+            <div id="sugerenciasParadas" class="list-group"></div>
+            <small class="text-muted">Separá las paradas con comas.</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Días de la semana</label>
+            @{
+                var dias = new[]
+                {
+                    (1, "Lunes"),
+                    (2, "Martes"),
+                    (3, "Miércoles"),
+                    (4, "Jueves"),
+                    (5, "Viernes"),
+                    (6, "Sábado"),
+                    (7, "Domingo")
+                };
+            }
+
+            @foreach (var dia in dias)
+            {
+                <div class="form-check">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="DiasSeleccionados"
+                           value="@dia.Item1"
+                           id="dia@dia.Item1"
+                           checked="@Model.DiasSeleccionados.Contains((byte)dia.Item1)" />
+
+                    <label class="form-check-label" for="dia@dia.Item1">
+                        @dia.Item2
+                    </label>
+                </div>
+            }
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="HoraSalida" class="form-label">Hora de salida</label>
+                <input asp-for="HoraSalida" type="time" class="form-control" />
+                <span asp-validation-for="HoraSalida" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label asp-for="HoraLlegada" class="form-label">Hora estimada de llegada</label>
+                <input asp-for="HoraLlegada" type="time" class="form-control" />
+                <span asp-validation-for="HoraLlegada" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="MaxPaquetes" class="form-label">Máximo de paquetes</label>
+            <input asp-for="MaxPaquetes" class="form-control" />
+            <span asp-validation-for="MaxPaquetes" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="PesoMaxKg" class="form-label">Peso máximo (kg)</label>
+            <input asp-for="PesoMaxKg" class="form-control" />
+            <span asp-validation-for="PesoMaxKg" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="DesvioMaxKm" class="form-label">Desvío máximo (km)</label>
+            <input asp-for="DesvioMaxKm" class="form-control" />
+            <span asp-validation-for="DesvioMaxKm" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Guardar cambios
+        </button>
+
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            Cancelar
+        </a>
+    </form>
+</div>
+
+    @section Scripts {
+    <script>
+        function configurarAutocompletado(campo, contenedor, obtenerTexto, seleccionarLugar) {
+            let temporizador;
+            let ultimaBusqueda = 0;
+
+            campo.addEventListener("input", function () {
+                clearTimeout(temporizador);
+
+                const texto = obtenerTexto().trim();
+                const busquedaActual = ++ultimaBusqueda;
+
+                contenedor.innerHTML = "";
+                contenedor.style.display = "none";
+
+                if (texto.length < 3)
+                    return;
+
+                temporizador = setTimeout(async () => {
+                    try {
+                        const respuesta = await fetch(
+                            `/Viajes/BuscarDirecciones?texto=${encodeURIComponent(texto)}`
+                        );
+
+                        if (!respuesta.ok)
+                            return;
+
+                        const lugares = await respuesta.json();
+
+                        if (busquedaActual !== ultimaBusqueda ||
+                            obtenerTexto().trim() !== texto)
+                            return;
+
+                        contenedor.innerHTML = "";
+
+                        lugares.forEach(lugar => {
+                            const opcion = document.createElement("button");
+                            opcion.type = "button";
+                            opcion.className = "list-group-item list-group-item-action";
+
+                            const titulo = document.createElement("strong");
+                            titulo.textContent = lugar.titulo;
+
+                            const direccion = document.createElement("small");
+                            direccion.className = "d-block text-muted";
+                            direccion.textContent = lugar.direccion;
+
+                            opcion.appendChild(titulo);
+                            opcion.appendChild(direccion);
+
+                            opcion.addEventListener("click", function () {
+                                seleccionarLugar(lugar);
+                                contenedor.innerHTML = "";
+                                contenedor.style.display = "none";
+                            });
+
+                            contenedor.appendChild(opcion);
+                        });
+
+                        contenedor.style.display =
+                            lugares.length > 0 ? "block" : "none";
+                    }
+                    catch (error) {
+                        console.error("Error al buscar direcciones:", error);
+                    }
+                }, 350);
+            });
+
+            document.addEventListener("click", function (evento) {
+                if (!campo.contains(evento.target) &&
+                    !contenedor.contains(evento.target)) {
+                    contenedor.style.display = "none";
+                }
+            });
+        }
+
+        // ORIGEN
+        configurarAutocompletado(
+            document.getElementById("Origen"),
+            document.getElementById("sugerenciasOrigen"),
+            () => document.getElementById("Origen").value,
+            lugar => {
+                document.getElementById("Origen").value = lugar.direccion;
+            }
+        );
+
+        // DESTINO
+        configurarAutocompletado(
+            document.getElementById("Destino"),
+            document.getElementById("sugerenciasDestino"),
+            () => document.getElementById("Destino").value,
+            lugar => {
+                document.getElementById("Destino").value = lugar.direccion;
+            }
+        );
+
+        // PARADAS
+        configurarAutocompletado(
+            document.getElementById("ParadasTexto"),
+            document.getElementById("sugerenciasParadas"),
+            () => {
+                const valor = document.getElementById("ParadasTexto").value;
+                return valor.substring(valor.lastIndexOf(",") + 1);
+            },
+            lugar => {
+                const campo = document.getElementById("ParadasTexto");
+                const valor = campo.value;
+                const ultimaComa = valor.lastIndexOf(",");
+
+                const anteriores = ultimaComa >= 0
+                    ? valor.substring(0, ultimaComa + 1) + " "
+                    : "";
+
+                campo.value = anteriores + lugar.direccion + ", ";
+                campo.focus();
+            }
+        );
+    </script>
+}

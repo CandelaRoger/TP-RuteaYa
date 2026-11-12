@@ -30,6 +30,19 @@ namespace RuteaYa.WebApi.Controllers
             return Ok(coordenadas);
         }
 
+
+        [HttpGet("sugerencias")]
+        public async Task<IActionResult> BuscarSugerencias(
+            [FromQuery] string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3)
+                return Ok(new List<SugerenciaDireccion>());
+
+            var sugerencias = await _rutaService.BuscarDireccionesAsync(texto);
+
+            return Ok(sugerencias);
+        }
+
         [HttpPost("calcular")]
         public async Task<IActionResult> CalcularRuta(
             [FromBody] List<Coordenadas> puntos)

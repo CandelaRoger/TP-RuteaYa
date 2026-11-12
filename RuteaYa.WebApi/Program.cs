@@ -5,14 +5,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using RuteaYa.Logica.Rutas;
 
+
 var builder = WebApplication.CreateBuilder(args);
 var hereApiKey = builder.Configuration["Here:ApiKey"];
 if (string.IsNullOrWhiteSpace(hereApiKey))
 {
     throw new InvalidOperationException("No se configuró la API Key de HERE.");
 }
-// 1. Configurar JWT Authentication
-var jwtKey = builder.Configuration["JwtSettings:SecretKey"] ; // Usar tu clave de appsettings
+
+var jwtKey = builder.Configuration["JwtSettings:SecretKey"] ; 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -25,10 +26,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
-// Registrar controladores y la API
+
 builder.Services.AddControllers();
 
-// Swagger / OpenAPI 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

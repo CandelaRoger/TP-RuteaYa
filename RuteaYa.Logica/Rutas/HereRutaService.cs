@@ -10,12 +10,8 @@ namespace RuteaYa.Logica.Rutas
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
 
-        public HereRutaService(
-            HttpClient httpClient,
-            IConfiguration configuration)
-        {
+        public HereRutaService( HttpClient httpClient,IConfiguration configuration) {
             _httpClient = httpClient;
-
             _apiKey = configuration["Here:ApiKey"]
                 ?? throw new InvalidOperationException(
                     "No se configuró la API Key de HERE.");
@@ -46,6 +42,63 @@ namespace RuteaYa.Logica.Rutas
                 Latitud = posicion.GetProperty("lat").GetDouble(),
                 Longitud = posicion.GetProperty("lng").GetDouble()
             };
+        }
+
+        public async Task<List<SugerenciaDireccion>> BuscarDireccionesAsync(
+            string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3)
+                return new List<SugerenciaDireccion>();
+
+            var url = "https://autosuggest.search.hereapi.com/v1/autosuggest" +
+                      $"?q={Uri.EscapeDataString(texto.Trim())}" +
+                      "&at=-34.6037,-58.3816" +
+                      "&limit=6" +
+                      "&lang=es-AR" +
+                      $"&apiKey={Uri.EscapeDataString(_apiKey)}";
+
+            var response = await _httpClient.GetAsync(url);
+
+            response.EnsureSuccessStatusCode();
+
+            using var documento = JsonDocument.Parse(
+                await response.Content.ReadAsStringAsync());
+
+            var sugerencias = new List<SugerenciaDireccion>();
+
+            var items = documento.RootElement.GetProperty("items");
+
+            foreach (var item in items.EnumerateArray())
+            {
+                
+                if (!item.TryGetProperty("position", out var posicion))
+                    continue;
+
+                if (!item.TryGetProperty("address", out var direccion))
+                    continue;
+
+                var titulo = item.TryGetProperty("title", out var tituloJson)
+                    ? tituloJson.GetString() ?? string.Empty
+                    : string.Empty;
+
+                var direccionCompleta =
+                    direccion.TryGetProperty("label", out var labelJson)
+                        ? labelJson.GetString() ?? string.Empty
+                        : string.Empty;
+
+                if (string.IsNullOrWhiteSpace(direccionCompleta))
+                    continue;
+
+                sugerencias.Add(new SugerenciaDireccion
+                {
+                    Titulo = titulo,
+                    Direccion = direccionCompleta,
+                    Latitud = posicion.GetProperty("lat").GetDouble(),
+                    Longitud = posicion.GetProperty("lng").GetDouble()
+                });
+            }
+
+            return sugerencias;
         }
 
         public async Task<ResultadoRuta?> CalcularRutaAsync(

@@ -15,7 +15,6 @@ namespace RuteaYa.MVC.Controllers
             _httpClientFactory = httpClientFactory;
         }
 
-        // GET: /Viajes?filtro=Activos
         [HttpGet]
         public async Task<IActionResult> Index(string filtro = "Activos")
         {
@@ -32,7 +31,28 @@ namespace RuteaYa.MVC.Controllers
             return View(viajes);
         }
 
-        // GET: /Viajes/Crear
+
+        [HttpGet]
+        public async Task<IActionResult> BuscarDirecciones(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3)
+                return Content("[]", "application/json");
+
+            var client = _httpClientFactory.CreateClient("RuteaYaApi");
+
+            var url = $"api/Rutas/sugerencias?texto={Uri.EscapeDataString(texto)}";
+
+            var response = await client.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+                return StatusCode((int)response.StatusCode);
+
+            var contenido = await response.Content.ReadAsStringAsync();
+
+            return Content(contenido, "application/json");
+        }
+
+
         [HttpGet]
        
         public IActionResult Crear()
@@ -40,7 +60,131 @@ namespace RuteaYa.MVC.Controllers
             return View(new CrearViajeViewModel());
         }
 
-        
+        [HttpGet]
+        public async Task<IActionResult> Detalles(int id)
+        {
+            var client = _httpClientFactory.CreateClient("RuteaYaApi");
+
+            var response = await client.GetAsync($"api/viajesApi/{id}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return NotFound();
+
+            if (!response.IsSuccessStatusCode)
+                return RedirectToAction(nameof(Index));
+
+            var viaje = await response.Content.ReadFromJsonAsync<ViajeDto>();
+
+            if (viaje == null)
+                return NotFound();
+
+            ViewBag.HereApiKey = HttpContext.RequestServices
+            .GetRequiredService<IConfiguration>()["Here:ApiKey"];
+
+            return View(viaje);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Editar(int id)
+        {
+            var client = _httpClientFactory.CreateClient("RuteaYaApi");
+
+            var response = await client.GetAsync($"api/viajesApi/{id}");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return NotFound();
+
+            if (!response.IsSuccessStatusCode)
+                return RedirectToAction(nameof(Index));
+
+            var viaje = await response.Content.ReadFromJsonAsync<ViajeDto>();
+
+            if (viaje == null)
+                return NotFound();
+
+            var model = new CrearViajeViewModel
+            {
+                Origen = viaje.OrigenDir,
+                Destino = viaje.DestinoDir,
+
+                ParadasTexto = string.Join(", ",
+                    viaje.Paradas
+                        .OrderBy(p => p.Orden)
+                        .Select(p => p.Direccion)),
+
+                DiasSeleccionados = viaje.DiasSemana.ToList(),
+
+                HoraSalida = viaje.HoraSalida,
+                HoraLlegada = viaje.HoraLlegada,
+                MaxPaquetes = viaje.MaxPaquetes,
+                PesoMaxKg = viaje.PesoMaxKg,
+                DesvioMaxKm = viaje.DesvioMaxKm
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(int id, CrearViajeViewModel model)
+        {
+            if (model.DiasSeleccionados == null || model.DiasSeleccionados.Count == 0)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Debe seleccionar al menos un día de la semana.");
+            }
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var dto = new CrearViajeDto
+            {
+                Origen = model.Origen,
+                Destino = model.Destino,
+
+                Paradas = string.IsNullOrWhiteSpace(model.ParadasTexto)
+                    ? new List<string>()
+                    : model.ParadasTexto.Split(
+                        ',',
+                        StringSplitOptions.RemoveEmptyEntries |
+                        StringSplitOptions.TrimEntries).ToList(),
+
+                DiasSemana = model.DiasSeleccionados,
+                HoraSalida = model.HoraSalida,
+                HoraLlegada = model.HoraLlegada,
+                MaxPaquetes = model.MaxPaquetes,
+                PesoMaxKg = model.PesoMaxKg,
+                DesvioMaxKm = model.DesvioMaxKm
+            };
+
+            var client = _httpClientFactory.CreateClient("RuteaYaApi");
+
+            var response = await client.PutAsJsonAsync(
+                $"api/viajesApi/{id}", dto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["MensajeExito"] = "Viaje actualizado correctamente.";
+                return RedirectToAction(nameof(Detalles), new { id });
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Tu sesión expiró. Por favor, vuelve a iniciar sesión.");
+                return View(model);
+            }
+
+            var error = await response.Content.ReadFromJsonAsync<RespuestaErrorApi>();
+
+            ModelState.AddModelError(
+                string.Empty,
+                error?.Mensaje ?? "No se pudo actualizar el viaje.");
+
+            return View(model);
+        } 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Crear(CrearViajeViewModel model)
@@ -53,7 +197,6 @@ namespace RuteaYa.MVC.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            // Mapeo del ViewModel al DTO que consume la Web API
             var dto = new CrearViajeDto
             {
                 Origen = model.Origen,
@@ -72,14 +215,12 @@ namespace RuteaYa.MVC.Controllers
             var client = _httpClientFactory.CreateClient("RuteaYaApi");
             var response = await client.PostAsJsonAsync("api/viajesApi", dto);
 
-            // 1. Caso de Éxito (HTTP 200 / 201)
             if (response.IsSuccessStatusCode)
             {
                 TempData["MensajeExito"] = "Nuevo viaje creado con éxito";
                 return RedirectToAction(nameof(Index));
             }
 
-            // 2. Manejo seguro de errores en caso de fallo
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 ModelState.AddModelError(string.Empty, "Tu sesión expiro. Por favor, vuelve a iniciar sesión.");
@@ -90,7 +231,6 @@ namespace RuteaYa.MVC.Controllers
             return View(model);
         }
 
-        // POST: /Viajes/Desactivar/5
         [HttpPost]
         public async Task<IActionResult> Desactivar(int id)
         {

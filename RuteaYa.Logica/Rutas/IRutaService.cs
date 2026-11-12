@@ -8,5 +8,9 @@ namespace RuteaYa.Logica.Rutas
         Task<ResultadoRuta?> CalcularRutaAsync(
             List<Coordenadas> puntos
         );
+
+        Task<List<SugerenciaDireccion>> BuscarDireccionesAsync(
+            string texto
+        );
     }
 }

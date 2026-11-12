@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RuteaYa.Entidades
@@ -47,12 +44,8 @@ namespace RuteaYa.Entidades
 
         [Column(TypeName = "decimal(6,2)")]
         public decimal DistanciaKm { get; set; }
-
         public int DuracionMin { get; set; }
-
         public bool Activo { get; set; } = true;
-
-        // Propiedades de navegación (Relaciones)
         public Usuario Usuario { get; set; } = null!;
 
         public ICollection<Parada> Paradas { get; set; } = new List<Parada>();
