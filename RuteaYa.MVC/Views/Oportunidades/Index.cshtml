@@ -1,0 +1,93 @@
+﻿@model List<RuteaYa.DTOs.OportunidadDto>
+
+@{
+    ViewData["Title"] = "Oportunidades";
+}
+
+<div class="container mt-4">
+
+    <h2>Oportunidades disponibles</h2>
+
+    <p class="text-muted">
+        Envíos candidatos para el viaje #@ViewBag.ViajeId
+    </p>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            No hay oportunidades disponibles para este viaje.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var oportunidad in Model)
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+
+                            <h5 class="card-title">
+                                @oportunidad.OrigenDir
+                                →
+                                @oportunidad.DestinoDir
+                            </h5>
+
+                            <p>
+                                <strong>Descripción:</strong>
+                                @oportunidad.Descripcion
+                            </p>
+
+                            <p>
+                                <strong>Fecha:</strong>
+                                @oportunidad.Fecha.ToString("dd/MM/yyyy")
+                            </p>
+
+                            <p>
+                                <strong>Peso:</strong>
+                                @oportunidad.Peso kg
+                            </p>
+
+                            <p>
+                                <strong>Tamaño:</strong>
+                                @oportunidad.Tamanio
+                            </p>
+
+                            <p class="text-success fw-bold">
+                                Ofrecen:
+                                @oportunidad.MontoOfrecido.ToString("C")
+                            </p>
+                            <form asp-controller="Oportunidades"
+                                  asp-action="Aceptar"
+                                  method="post">
+
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="viajeId"
+                                       value="@ViewBag.ViajeId" />
+
+                                <input type="hidden"
+                                       name="envioId"
+                                       value="@oportunidad.EnvioId" />
+
+                                <button type="submit"
+                                        class="btn btn-success w-100"
+                                        onclick="return confirm('¿Querés aceptar este envío?');">
+                                    Aceptar envío
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -11,8 +11,9 @@ namespace RuteaYa.Entidades
         [Key]
         public int Id { get; set; }
 
-        public int UsuarioId { get; set; } 
-
+        public int UsuarioId { get; set; }
+        public int? ViajeId { get; set; }
+        public Viaje? Viaje { get; set; }
         [Required]
         [MaxLength(200)]
         public string OrigenDir { get; set; } = string.Empty;
