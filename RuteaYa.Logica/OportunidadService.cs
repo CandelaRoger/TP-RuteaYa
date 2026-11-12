@@ -201,6 +201,57 @@ namespace RuteaYa.Logica
             return envios;
         }
 
+        public async Task<CapacidadViajeDto> ObtenerCapacidadAsync(
+            int viajeId,
+            int usuarioId)
+        {
+            // 1. Buscar el viaje y verificar su propietario
+            var viaje = await _context.Viajes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v =>
+                    v.Id == viajeId &&
+                    v.UsuarioId == usuarioId);
+
+            if (viaje == null)
+            {
+                throw new KeyNotFoundException(
+                    "El viaje no existe o no te pertenece.");
+            }
+
+            // 2. Calcular los paquetes y el peso ocupado
+            var ocupacion = await _context.Envios
+                .AsNoTracking()
+                .Where(e =>
+                    e.ViajeId == viajeId &&
+                    e.Estado != "Cancelado")
+                .GroupBy(e => e.ViajeId)
+                .Select(g => new
+                {
+                    Cantidad = g.Count(),
+                    PesoTotal = g.Sum(e => e.Peso)
+                })
+                .FirstOrDefaultAsync();
+
+            int paquetesOcupados = ocupacion?.Cantidad ?? 0;
+            decimal pesoOcupado = ocupacion?.PesoTotal ?? 0m;
+
+            // 3. Calcular la capacidad restante
+            return new CapacidadViajeDto
+            {
+                ViajeId = viaje.Id,
+
+                MaxPaquetes = viaje.MaxPaquetes,
+                PaquetesOcupados = paquetesOcupados,
+                PaquetesDisponibles = Math.Max(
+                    0, viaje.MaxPaquetes - paquetesOcupados),
+
+                PesoMaxKg = viaje.PesoMaxKg,
+                PesoOcupadoKg = pesoOcupado,
+                PesoDisponibleKg = Math.Max(
+                    0m, viaje.PesoMaxKg - pesoOcupado)
+            };
+        }
+
 
     }
 }

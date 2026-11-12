@@ -1,6 +1,8 @@
 ﻿
 @model List<RuteaYa.DTOs.OportunidadDto>
-
+@{
+    var capacidad = ViewBag.Capacidad as RuteaYa.DTOs.CapacidadViajeDto;
+}
 @{
     ViewData["Title"] = "Mis envíos asignados";
 }
@@ -8,6 +10,63 @@
 <div class="container mt-4">
 
     <h2>Mis envíos asignados</h2>
+    
+@if (capacidad != null)
+{
+    var porcentajePaquetes = capacidad.MaxPaquetes > 0
+        ? Math.Clamp(
+            capacidad.PaquetesOcupados * 100.0
+            / capacidad.MaxPaquetes, 0, 100)
+        : 0;
+
+    var porcentajePeso = capacidad.PesoMaxKg > 0
+        ? Math.Clamp(
+            (double)(capacidad.PesoOcupadoKg * 100
+            / capacidad.PesoMaxKg), 0, 100)
+        : 0;
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <h5>Capacidad del viaje</h5>
+
+            <div class="d-flex justify-content-between mt-3">
+                <strong>Paquetes asignados</strong>
+                <span>
+                    @capacidad.PaquetesOcupados /
+                    @capacidad.MaxPaquetes
+                </span>
+            </div>
+
+            <div class="progress mb-3">
+                <div class="progress-bar bg-success"
+                     style="width: @(porcentajePaquetes.ToString(System.Globalization.CultureInfo.InvariantCulture))%">
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <strong>Peso ocupado</strong>
+                <span>
+                    @capacidad.PesoOcupadoKg /
+                    @capacidad.PesoMaxKg kg
+                </span>
+            </div>
+
+            <div class="progress mb-3">
+                <div class="progress-bar bg-primary"
+                     style="width: @(porcentajePeso.ToString(System.Globalization.CultureInfo.InvariantCulture))%">
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>Disponible:</strong>
+                @capacidad.PaquetesDisponibles paquetes
+                y @capacidad.PesoDisponibleKg kg
+            </div>
+
+        </div>
+    </div>
+}
 
     <p class="text-muted">
         Paquetes asignados al viaje #@ViewBag.ViajeId

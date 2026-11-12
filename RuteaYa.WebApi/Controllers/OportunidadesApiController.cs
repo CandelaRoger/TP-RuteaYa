@@ -109,6 +109,40 @@ namespace RuteaYa.WebApi.Controllers
             }
         }
 
+        [HttpGet("viaje/{viajeId}/capacidad")]
+        public async Task<IActionResult> ObtenerCapacidad(int viajeId)
+        {
+            // Obtener el ID del usuario autenticado
+            var claim = User.FindFirst(
+                ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value;
+
+            if (!int.TryParse(claim, out int usuarioId))
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "Inicie sesión nuevamente."
+                });
+            }
+
+            try
+            {
+                // Consultar la capacidad del viaje
+                var capacidad = await _service.ObtenerCapacidadAsync(
+                    viajeId,
+                    usuarioId);
+
+                return Ok(capacidad);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    mensaje = ex.Message
+                });
+            }
+        }
+
 
     }
 

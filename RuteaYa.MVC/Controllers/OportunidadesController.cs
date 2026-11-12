@@ -115,11 +115,21 @@ public class OportunidadesController : Controller
         try
         {
             // Consultar los paquetes asignados a este viaje
+
             var asignados = await client
                 .GetFromJsonAsync<List<OportunidadDto>>(
                     $"api/oportunidades/viaje/{viajeId}/asignados");
 
+            // Consultar la capacidad actual del viaje
+            var capacidad = await client
+                .GetFromJsonAsync<CapacidadViajeDto>(
+                    $"api/oportunidades/viaje/{viajeId}/capacidad");
+
+            // Enviar la capacidad a la vista
+            ViewBag.Capacidad = capacidad;
+
             return View(asignados ?? new List<OportunidadDto>());
+
         }
         catch (HttpRequestException)
         {

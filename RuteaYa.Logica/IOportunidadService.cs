@@ -16,6 +16,9 @@ namespace RuteaYa.Logica
         Task<List<OportunidadDto>> ObtenerAsignadosAsync(
     int viajeId,
     int usuarioId);
+        Task<CapacidadViajeDto> ObtenerCapacidadAsync(
+    int viajeId,
+    int usuarioId);
     }
 
 }
