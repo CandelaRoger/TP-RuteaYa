@@ -124,10 +124,34 @@
                                 Monto ofrecido:
                                 @envio.MontoOfrecido.ToString("C")
                             </p>
+                                <form asp-controller="Oportunidades"
+                          asp-action="Quitar"
+                          method="post"
+                          class="mt-auto"
+                          onsubmit="return confirm('¿Estás seguro de que querés quitar este envío del viaje?');">
+
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden"
+                               name="viajeId"
+                               value="@ViewBag.ViajeId" />
+
+                        <input type="hidden"
+                               name="envioId"
+                               value="@envio.EnvioId" />
+
+                        <button type="submit"
+                                class="btn btn-outline-danger w-100">
+                            <i class="bi bi-trash"></i>
+                            Quitar envío
+                        </button>
+                    </form>
+
 
                         </div>
                     </div>
                 </div>
+
             }
         </div>
     }

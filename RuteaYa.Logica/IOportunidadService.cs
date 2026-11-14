@@ -19,6 +19,11 @@ namespace RuteaYa.Logica
         Task<CapacidadViajeDto> ObtenerCapacidadAsync(
     int viajeId,
     int usuarioId);
+        Task<ResultadoOperacion<bool>> QuitarEnvioAsync(
+    int viajeId,
+    int envioId,
+    int usuarioId);
+
     }
 
 }

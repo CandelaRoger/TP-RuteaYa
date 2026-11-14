@@ -65,7 +65,7 @@ builder.Services.AddScoped<IOportunidadService,OportunidadService>();
 
 builder.Services.AddHttpClient<IRutaService, HereRutaService>();
 
-
+builder.Services.AddScoped<OptimizadorRecorridos>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

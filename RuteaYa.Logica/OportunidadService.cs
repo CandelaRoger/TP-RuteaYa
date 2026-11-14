@@ -4,7 +4,7 @@ using System.Text;
 
 using Microsoft.EntityFrameworkCore;
 using RuteaYa.DTOs;
-
+using RuteaYa.Entidades;
 namespace RuteaYa.Logica
 {
     public class OportunidadService : IOportunidadService
@@ -151,14 +151,50 @@ namespace RuteaYa.Logica
                 return ResultadoOperacion<bool>.Falla(
                     "El envío supera el peso disponible del viaje.");
 
+
             // 9. Asignar el envío al viaje
             envio.ViajeId = viajeId;
             envio.Estado = "Asignado";
+
+            // Buscar el último orden de parada
+            int ultimoOrden = await _context.Paradas
+                .Where(p => p.ViajeId == viajeId)
+                .Select(p => (int?)p.Orden)
+                .MaxAsync() ?? 0;
+
+            // 10. Crear parada de retiro
+            var paradaRetiro = new Parada
+            {
+                ViajeId = viajeId,
+                EnvioId = envio.Id,
+                Tipo = "Retiro",
+                Direccion = envio.OrigenDir,
+                Lat = envio.OrigenLat,
+                Lng = envio.OrigenLng,
+                Orden = ultimoOrden + 1
+            };
+
+            // 11. Crear parada de entrega
+            var paradaEntrega = new Parada
+            {
+                ViajeId = viajeId,
+                EnvioId = envio.Id,
+                Tipo = "Entrega",
+                Direccion = envio.DestinoDir,
+                Lat = envio.DestinoLat,
+                Lng = envio.DestinoLng,
+                Orden = ultimoOrden + 2
+            };
+
+            _context.Paradas.AddRange(
+                paradaRetiro,
+                paradaEntrega);
 
             await _context.SaveChangesAsync();
             await transaccion.CommitAsync();
 
             return ResultadoOperacion<bool>.Ok(true);
+
         }
 
         public async Task<List<OportunidadDto>> ObtenerAsignadosAsync(
@@ -252,6 +288,56 @@ namespace RuteaYa.Logica
             };
         }
 
+
+        public async Task<ResultadoOperacion<bool>> QuitarEnvioAsync(
+            int viajeId,
+            int envioId,
+            int usuarioId)
+        {
+            await using var transaccion = await _context.Database
+                .BeginTransactionAsync(
+                    System.Data.IsolationLevel.Serializable);
+
+            // Verificar que el viaje pertenezca al conductor
+            var viaje = await _context.Viajes
+                .FirstOrDefaultAsync(v =>
+                    v.Id == viajeId &&
+                    v.UsuarioId == usuarioId);
+
+            if (viaje == null)
+                return ResultadoOperacion<bool>.Falla(
+                    "El viaje no existe o no te pertenece.");
+
+            // Buscar el envío asignado
+            var envio = await _context.Envios
+                .FirstOrDefaultAsync(e =>
+                    e.Id == envioId &&
+                    e.ViajeId == viajeId &&
+                    e.Estado == "Asignado");
+
+            if (envio == null)
+                return ResultadoOperacion<bool>.Falla(
+                    "El envío no está asignado a este viaje.");
+
+            // Buscar las paradas pertenecientes al envío
+            var paradas = await _context.Paradas
+                .Where(p =>
+                    p.ViajeId == viajeId &&
+                    p.EnvioId == envioId)
+                .ToListAsync();
+
+            // Eliminar retiro y entrega
+            _context.Paradas.RemoveRange(paradas);
+
+            // Devolver el envío a su estado anterior
+            envio.ViajeId = null;
+            envio.Estado = "Buscando conductor";
+
+            await _context.SaveChangesAsync();
+            await transaccion.CommitAsync();
+
+            return ResultadoOperacion<bool>.Ok(true);
+        }
 
     }
 }

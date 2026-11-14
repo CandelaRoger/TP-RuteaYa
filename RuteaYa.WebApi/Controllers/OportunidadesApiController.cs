@@ -143,6 +143,44 @@ namespace RuteaYa.WebApi.Controllers
             }
         }
 
+        [HttpPost("viaje/{viajeId}/quitar/{envioId}")]
+        public async Task<IActionResult> QuitarEnvio(
+            int viajeId,
+            int envioId)
+        {
+            // Obtener el usuario autenticado
+            var claim = User.FindFirst(
+                ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value;
+
+            if (!int.TryParse(claim, out int usuarioId))
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "Inicie sesión nuevamente."
+                });
+            }
+
+            // Quitar el envío del viaje
+            var resultado = await _service.QuitarEnvioAsync(
+                viajeId,
+                envioId,
+                usuarioId);
+
+            if (!resultado.Exitoso)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.MensajeError
+                });
+            }
+
+            return Ok(new
+            {
+                mensaje = "El envío fue quitado correctamente."
+            });
+        }
+
 
     }
 

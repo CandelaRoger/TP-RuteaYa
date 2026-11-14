@@ -140,6 +140,60 @@ public class OportunidadesController : Controller
         }
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Quitar(int viajeId, int envioId)
+    {
+        var client = _httpClientFactory.CreateClient("RuteaYaApi");
+
+        // Recuperar el JWT del usuario autenticado
+        var token = await HttpContext.GetTokenAsync("jwt");
+
+        if (string.IsNullOrEmpty(token))
+            return RedirectToAction("Login", "Auth");
+
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+
+        try
+        {
+            // Solicitar a la API que quite el envío del viaje
+            var respuesta = await client.PostAsync(
+                $"api/oportunidades/viaje/{viajeId}/quitar/{envioId}",
+                null);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                TempData["Exito"] =
+                    "El envío fue quitado correctamente.";
+            }
+            else
+            {
+                try
+                {
+                    var error = await respuesta.Content
+                        .ReadFromJsonAsync<MensajeApi>();
+
+                    TempData["Error"] = error?.Mensaje
+                        ?? "No se pudo quitar el envío.";
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                    TempData["Error"] =
+                        "No se pudo quitar el envío.";
+                }
+            }
+        }
+        catch (HttpRequestException)
+        {
+            TempData["Error"] =
+                "No se pudo conectar con la API.";
+        }
+
+        // Volver al listado de envíos asignados
+        return RedirectToAction(nameof(Asignados), new { viajeId });
+    }
+
 
     private class MensajeApi
     {

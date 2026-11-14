@@ -104,6 +104,9 @@ namespace RuteaYa.Logica.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("EnvioId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Lat")
                         .HasColumnType("decimal(9,6)");
 
@@ -112,6 +115,10 @@ namespace RuteaYa.Logica.Migrations
 
                     b.Property<int>("Orden")
                         .HasColumnType("int");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ViajeId")
                         .HasColumnType("int");
