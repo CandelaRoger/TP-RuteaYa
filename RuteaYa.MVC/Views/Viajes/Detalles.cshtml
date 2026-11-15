@@ -142,10 +142,8 @@
         new H.mapevents.Behavior(eventos);
         H.ui.UI.createDefault(mapa, capas);
 
-        // Marcador de origen
         mapa.addObject(new H.map.Marker(origen));
 
-        // Marcadores de las paradas
         paradas.forEach(parada => {
             mapa.addObject(new H.map.Marker({
                 lat: Number(parada.lat),
@@ -153,10 +151,8 @@
             }));
         });
 
-        // Marcador de destino
         mapa.addObject(new H.map.Marker(destino));
 
-        // Dibujar recorrido calculado por HERE
         if (puntosRuta && puntosRuta.length > 0) {
             const linea = new H.geo.LineString();
 
