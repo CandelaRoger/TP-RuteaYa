@@ -8,10 +8,6 @@ using RuteaYa.Logica.Rutas;
 
 var builder = WebApplication.CreateBuilder(args);
 var hereApiKey = builder.Configuration["Here:ApiKey"];
-if (string.IsNullOrWhiteSpace(hereApiKey))
-{
-    throw new InvalidOperationException("No se configuró la API Key de HERE.");
-}
 
 var jwtKey = builder.Configuration["JwtSettings:SecretKey"] ; 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -40,7 +36,15 @@ builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IEnvioService, EnvioService>();
-builder.Services.AddHttpClient<IRutaService, HereRutaService>();
+
+if (string.IsNullOrWhiteSpace(hereApiKey))
+{
+    builder.Services.AddScoped<IRutaService, MockRutaService>();
+}
+else
+{
+    builder.Services.AddHttpClient<IRutaService, HereRutaService>();
+}
 
 var app = builder.Build();
 
