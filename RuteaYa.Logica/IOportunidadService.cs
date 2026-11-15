@@ -5,10 +5,7 @@ namespace RuteaYa.Logica
 {
     public interface IOportunidadService
     {
-        Task<List<OportunidadDto>> ObtenerCandidatosAsync(
-            int viajeId,
-            int usuarioId);
-
+        
         Task<ResultadoOperacion<bool>> AceptarEnvioAsync(
             int viajeId,
             int envioId,
@@ -23,6 +20,11 @@ namespace RuteaYa.Logica
     int viajeId,
     int envioId,
     int usuarioId);
+
+        Task<List<OportunidadDto>> ObtenerCandidatosAsync(
+    int viajeId,
+    int usuarioId,
+    string? orden = "ganancia");
 
     }
 

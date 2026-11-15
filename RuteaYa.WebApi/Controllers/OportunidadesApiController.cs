@@ -20,29 +20,28 @@ namespace RuteaYa.WebApi.Controllers
         }
 
         [HttpGet("viaje/{viajeId}")]
-        public async Task<IActionResult> ObtenerPorViaje(
-            int viajeId)
+        public async Task<IActionResult> ObtenerPorViaje(int viajeId,[FromQuery] string? orden = "ganancia")
         {
-            var claim = User.FindFirst(
-                ClaimTypes.NameIdentifier)?.Value;
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!int.TryParse(claim, out int usuarioId))
                 return Unauthorized();
 
             try
             {
-                var candidatos =
-                    await _service.ObtenerCandidatosAsync(
-                        viajeId, usuarioId);
+                var candidatos = await _service.ObtenerCandidatosAsync(
+                    viajeId, usuarioId, orden);
 
                 return Ok(candidatos);
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new
-                {
-                    mensaje = ex.Message
-                });
+                return NotFound(new { mensaje = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { mensaje = ex.Message });
             }
         }
 

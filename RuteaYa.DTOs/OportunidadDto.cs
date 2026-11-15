@@ -19,6 +19,12 @@ namespace RuteaYa.DTOs
         public string Descripcion { get; set; } = string.Empty;
 
         public decimal MontoOfrecido { get; set; }
+
+        public double DistanciaHabitualKm { get; set; }
+        public double DistanciaConEnvioKm { get; set; }
+        public double DesvioKm { get; set; }
+        public double TiempoAdicionalMin { get; set; }
+        public string Compatibilidad { get; set; } = string.Empty;
     }
 }
 

@@ -46,6 +46,9 @@ namespace RuteaYa.Logica.Migrations
                     b.Property<decimal>("DestinoLng")
                         .HasColumnType("decimal(9,6)");
 
+                    b.Property<decimal>("DesvioKm")
+                        .HasColumnType("decimal(6,2)");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(50)

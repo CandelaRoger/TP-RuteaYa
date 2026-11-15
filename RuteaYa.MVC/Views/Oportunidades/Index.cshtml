@@ -12,6 +12,24 @@
         Envíos candidatos para el viaje #@ViewBag.ViajeId
     </p>
 
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+        <span class="text-muted small">Ordenar por</span>
+        @foreach (var (valor, texto) in new[] { ("ganancia", "Ganancia"), ("desvio", "Desvío"), ("compatibilidad", "Compatibilidad") })
+        {
+            <a asp-action="Index" asp-route-viajeId="@ViewBag.ViajeId" asp-route-orden="@valor"
+               class="btn btn-sm @((string?)ViewBag.Orden == valor ? "btn-primary" : "btn-outline-secondary")">
+                @texto
+            </a>
+        }
+    </div>
+
+    @if (TempData["Exito"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Exito"]
+        </div>
+    }
+
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger">
@@ -30,6 +48,13 @@
         <div class="row">
             @foreach (var oportunidad in Model)
             {
+                var clase = oportunidad.Compatibilidad switch
+                {
+                    "Muy compatible" => "bg-success",
+                    "Compatible" => "bg-primary",
+                    _ => "bg-warning text-dark"
+                };
+
                 <div class="col-md-6 mb-3">
                     <div class="card shadow-sm">
                         <div class="card-body">
@@ -60,10 +85,18 @@
                                 @oportunidad.Tamanio
                             </p>
 
+                            <p>
+                                <strong>Desvío:</strong>
+                                @oportunidad.DesvioKm.ToString("0.0") km
+                                (+@oportunidad.TiempoAdicionalMin.ToString("0") min)
+                                <span class="badge @clase ms-2">@oportunidad.Compatibilidad</span>
+                            </p>
+
                             <p class="text-success fw-bold">
                                 Ofrecen:
                                 @oportunidad.MontoOfrecido.ToString("C")
                             </p>
+
                             <form asp-controller="Oportunidades"
                                   asp-action="Aceptar"
                                   method="post">

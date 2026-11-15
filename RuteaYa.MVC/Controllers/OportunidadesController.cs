@@ -17,36 +17,30 @@ public class OportunidadesController : Controller
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<IActionResult> Index(int viajeId)
+    public async Task<IActionResult> Index(int viajeId, string orden = "ganancia")
     {
         var client = _httpClientFactory.CreateClient("RuteaYaApi");
-
-        // Recuperamos el JWT del usuario autenticado.
         var token = await HttpContext.GetTokenAsync("jwt");
 
         if (string.IsNullOrEmpty(token))
-        {
             return RedirectToAction("Login", "Auth");
-        }
 
-        // Enviamos el token a nuestra WebApi.
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
 
+        ViewBag.ViajeId = viajeId;
+        ViewBag.Orden = orden;
+
         try
         {
-            // Consultamos las oportunidades del viaje seleccionado.
             var oportunidades = await client.GetFromJsonAsync<List<OportunidadDto>>(
-                $"api/oportunidades/viaje/{viajeId}");
-
-            ViewBag.ViajeId = viajeId;
+                $"api/oportunidades/viaje/{viajeId}?orden={Uri.EscapeDataString(orden)}");
 
             return View(oportunidades ?? new List<OportunidadDto>());
         }
         catch (HttpRequestException)
         {
             TempData["Error"] = "No se pudieron obtener las oportunidades.";
-
             return View(new List<OportunidadDto>());
         }
     }

@@ -56,5 +56,8 @@ namespace RuteaYa.Entidades
         public string Estado { get; set; } = "Buscando conductor";
 
         public Usuario Usuario { get; set; } = null!;
+
+        [Column(TypeName = "decimal(6,2)")]
+        public decimal DesvioKm { get; set; }
     }
 }
