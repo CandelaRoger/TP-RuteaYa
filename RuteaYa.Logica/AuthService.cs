@@ -25,7 +25,6 @@ namespace RuteaYa.Logica
 
         public async Task<Resultado> RegistrarUsuarioAsync(RegistroDto dto)
         {
-            // 1. Validar email único 
             bool existeEmail = await UsuarioRegistrado(dto.Email);
 
             if (existeEmail)
@@ -36,10 +35,8 @@ namespace RuteaYa.Logica
                     MensajeError = "El email ya se encuentra registrado."
                 };
             }
-            // 2. Crear entidad 
             Usuario usuario = CrearUsuario(dto);
 
-            // Persistir cambios
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
             return new Resultado { Exitoso = true };
@@ -52,7 +49,6 @@ namespace RuteaYa.Logica
                 Nombre = dto.Nombre,
                 Apellido = dto.Apellido,
                 Email = dto.Email,
-                // hasheo con BCrypt.Net-Next 
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 CreadoEn = DateTime.UtcNow
             };
@@ -67,19 +63,16 @@ namespace RuteaYa.Logica
 
         public async Task<ResultadoLogin> Login(LoginDto dto)
         {
-            // 1. Buscar el usuario en la base de datos
             var usuario = await _context.Usuarios.FirstOrDefaultAsync(u => u.Email == dto.Email);
 
             if (usuario == null)
                 return new ResultadoLogin { Exitoso = false, MensajeError = "Credenciales inválidas." };
 
-            // Validación de contraseña 
             bool passwordValida = BCrypt.Net.BCrypt.Verify(dto.Password, usuario.PasswordHash);
 
             if (!passwordValida)
                 return new ResultadoLogin { Exitoso = false, MensajeError = "Credenciales inválidas." };
 
-            // creación del JWT en TokenService
             var tokenString = _tokenService.GenerateToken(usuario);
 
             return new ResultadoLogin { Exitoso = true, Token = tokenString };

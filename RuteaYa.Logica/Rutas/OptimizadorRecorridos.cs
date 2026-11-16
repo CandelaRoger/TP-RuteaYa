@@ -3,7 +3,6 @@ using RuteaYa.Entidades;
 
 namespace RuteaYa.Logica.Rutas
 {
-    // Guarda la ruta elegida y el orden de las paradas.
     public class MejorRecorrido
     {
         public ResultadoRuta Ruta { get; set; } = null!;
@@ -27,19 +26,17 @@ namespace RuteaYa.Logica.Rutas
             if (puntosOriginales.Count < 2)
                 return null;
 
-            // El primer punto es el origen del conductor.
+            
             var origen = puntosOriginales[0];
-
-            // El último punto es su destino.
             var destino = puntosOriginales[^1];
 
-            // Las paradas originales mantienen su orden.
+            
             var paradasOriginales = puntosOriginales
                 .Skip(1)
                 .Take(puntosOriginales.Count - 2)
                 .ToList();
 
-            // Cada envío tiene un retiro y una entrega.
+            
             var retiros = envios.Select(e => new Coordenadas
             {
                 Latitud = (double)e.OrigenLat,
@@ -59,7 +56,7 @@ namespace RuteaYa.Logica.Rutas
             var retirados = new bool[envios.Count];
             var entregados = new bool[envios.Count];
 
-            // Función recursiva: prueba todos los órdenes válidos.
+            
             async Task ExplorarAsync(int indiceParadaOriginal)
             {
                 bool terminaronParadas =
@@ -67,8 +64,7 @@ namespace RuteaYa.Logica.Rutas
 
                 bool terminaronEnvios = entregados.All(x => x);
 
-                // Si ya visitamos todas las ubicaciones,
-                // agregamos el destino y consultamos HERE.
+                
                 if (terminaronParadas && terminaronEnvios)
                 {
                     var recorridoCompleto =
@@ -96,7 +92,7 @@ namespace RuteaYa.Logica.Rutas
                     return;
                 }
 
-                // OPCIÓN 1: visitar la siguiente parada original.
+                
                 if (indiceParadaOriginal < paradasOriginales.Count)
                 {
                     recorridoActual.Add(
@@ -107,8 +103,6 @@ namespace RuteaYa.Logica.Rutas
                     recorridoActual.RemoveAt(recorridoActual.Count - 1);
                 }
 
-                // OPCIÓN 2: retirar cualquiera de los paquetes
-                // que todavía no fueron retirados.
                 for (int i = 0; i < envios.Count; i++)
                 {
                     if (retirados[i])
@@ -123,8 +117,7 @@ namespace RuteaYa.Logica.Rutas
                     retirados[i] = false;
                 }
 
-                // OPCIÓN 3: entregar un paquete,
-                // siempre que ya haya sido retirado.
+               
                 for (int i = 0; i < envios.Count; i++)
                 {
                     if (!retirados[i] || entregados[i])

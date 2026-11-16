@@ -95,7 +95,6 @@ public class OportunidadesController : Controller
     {
         var client = _httpClientFactory.CreateClient("RuteaYaApi");
 
-        // Recuperar el JWT del usuario autenticado
         var token = await HttpContext.GetTokenAsync("jwt");
 
         if (string.IsNullOrEmpty(token))
@@ -108,13 +107,11 @@ public class OportunidadesController : Controller
 
         try
         {
-            // Consultar los paquetes asignados a este viaje
 
             var asignados = await client
                 .GetFromJsonAsync<List<OportunidadDto>>(
                     $"api/oportunidades/viaje/{viajeId}/asignados");
 
-            // Consultar la capacidad actual del viaje
             var capacidad = await client
                 .GetFromJsonAsync<CapacidadViajeDto>(
                     $"api/oportunidades/viaje/{viajeId}/capacidad");
@@ -140,7 +137,6 @@ public class OportunidadesController : Controller
     {
         var client = _httpClientFactory.CreateClient("RuteaYaApi");
 
-        // Recuperar el JWT del usuario autenticado
         var token = await HttpContext.GetTokenAsync("jwt");
 
         if (string.IsNullOrEmpty(token))
@@ -151,7 +147,6 @@ public class OportunidadesController : Controller
 
         try
         {
-            // Solicitar a la API que quite el envío del viaje
             var respuesta = await client.PostAsync(
                 $"api/oportunidades/viaje/{viajeId}/quitar/{envioId}",
                 null);
@@ -184,7 +179,6 @@ public class OportunidadesController : Controller
                 "No se pudo conectar con la API.";
         }
 
-        // Volver al listado de envíos asignados
         return RedirectToAction(nameof(Asignados), new { viajeId });
     }
 

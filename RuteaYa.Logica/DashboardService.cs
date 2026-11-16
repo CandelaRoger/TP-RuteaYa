@@ -36,7 +36,6 @@ namespace RuteaYa.Logica
                 .ToListAsync();
 
             
-            // despues se agrega filtro por rutas/pesos con los viajes del usuario
             var oportunidadesCount = await _context.Envios
                 .Where(e => e.Estado == "Buscando conductor" && e.UsuarioId != usuarioId)
                 .CountAsync();
@@ -47,7 +46,7 @@ namespace RuteaYa.Logica
                 CantProximosViajes = viajesActivos.Count,
                 CantEnviosPendientes = enviosPendientes.Count,
                 CantOportunidades = oportunidadesCount,
-                PotencialDelMes = 84500m, // calcular el valor real despues !
+                PotencialDelMes = 84500m, 
                 NombreUsuario = nombreCompleto,
                 ProximosViajes = viajesActivos.Select(v => new ViajeResumenDto
                 {

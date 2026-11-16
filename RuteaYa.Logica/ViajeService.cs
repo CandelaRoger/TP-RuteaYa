@@ -193,7 +193,14 @@ namespace RuteaYa.Logica
             if (viaje == null)
                 return ResultadoOperacion<ViajeDto>.Falla(
                     "El viaje no fue encontrado o no te pertenece.");
+            var tieneEnviosAsignados = await _context.Envios
+            .AnyAsync(e => e.ViajeId == viajeId);
 
+            if (tieneEnviosAsignados)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se puede editar este viaje porque tiene envíos asignados.");
+            }
             var errorValidacion = ValidarViaje(dto);
 
             if (errorValidacion != null)
@@ -361,6 +368,8 @@ namespace RuteaYa.Logica
                 return null;
 
             var dto = MapearAViajeDto(viaje);
+            dto.TieneEnviosAsignados = await _context.Envios
+            .AnyAsync(e => e.ViajeId == viajeId);
 
             var puntos = new List<Coordenadas>
     {
@@ -401,7 +410,139 @@ namespace RuteaYa.Logica
             return dto;
         }
 
+        public async Task<ResultadoOperacion<ResultadoDesvioDto>> CalcularDesvioAsync(int viajeId, int envioId, int usuarioId)
+        {
+            var viaje = await _context.Viajes
+                .Include(v => v.Paradas)
+                .FirstOrDefaultAsync(v =>
+                    v.Id == viajeId && v.UsuarioId == usuarioId);
 
+            if (viaje == null)
+                return ResultadoOperacion<ResultadoDesvioDto>.Falla(
+                    "El viaje no fue encontrado o no te pertenece.");
+            
+            if (!viaje.Activo)
+                return ResultadoOperacion<ResultadoDesvioDto>.Falla(
+                    "No se puede calcular el desvío de un viaje inactivo.");
+
+            var envio = await _context.Envios
+                .FirstOrDefaultAsync(e => e.Id == envioId);
+
+            if (envio == null)
+                return ResultadoOperacion<ResultadoDesvioDto>.Falla(
+                    "El envío no fue encontrado.");
+
+            var puntosHabituales = new List<Coordenadas>
+    {
+        new()
+        {
+            Latitud = (double)viaje.OrigenLat,
+            Longitud = (double)viaje.OrigenLng
+        }
+    };
+
+            puntosHabituales.AddRange(viaje.Paradas
+                .OrderBy(p => p.Orden)
+                .Select(p => new Coordenadas
+                {
+                    Latitud = (double)p.Lat,
+                    Longitud = (double)p.Lng
+                }));
+
+            puntosHabituales.Add(new Coordenadas
+            {
+                Latitud = (double)viaje.DestinoLat,
+                Longitud = (double)viaje.DestinoLng
+            });
+
+            var retiro = new Coordenadas
+            {
+                Latitud = (double)envio.OrigenLat,
+                Longitud = (double)envio.OrigenLng
+            };
+
+            var entrega = new Coordenadas
+            {
+                Latitud = (double)envio.DestinoLat,
+                Longitud = (double)envio.DestinoLng
+            };
+
+            ResultadoRuta? mejorRuta = null;
+
+            try
+            {
+                for (int i = 1; i < puntosHabituales.Count; i++)
+                {
+                    var puntosConRetiro = new List<Coordenadas>(
+                        puntosHabituales);
+
+                    puntosConRetiro.Insert(i, retiro);
+
+                    for (int j = i + 1; j < puntosConRetiro.Count; j++)
+                    {
+                        var puntosAlternativos = new List<Coordenadas>(
+                            puntosConRetiro);
+
+                        puntosAlternativos.Insert(j, entrega);
+
+                        var resultado = await _rutaService.CalcularRutaAsync(
+                            puntosAlternativos);
+
+                        if (resultado != null &&
+                            (mejorRuta == null ||
+                             resultado.DistanciaKm < mejorRuta.DistanciaKm))
+                        {
+                            mejorRuta = resultado;
+                        }
+                    }
+                }
+            }
+            catch (HttpRequestException)
+            {
+                return ResultadoOperacion<ResultadoDesvioDto>.Falla(
+                    "No se pudo calcular el recorrido alternativo mediante el servicio de mapas.");
+            }
+
+            if (mejorRuta == null)
+                return ResultadoOperacion<ResultadoDesvioDto>.Falla(
+                    "No se pudo calcular ningún recorrido alternativo.");
+
+            double distanciaHabitual = (double)viaje.DistanciaKm;
+            double distanciaAlternativa = mejorRuta.DistanciaKm;
+
+            double desvio = Math.Max(
+                0, distanciaAlternativa - distanciaHabitual);
+
+            double duracionHabitual = viaje.DuracionMin;
+            double duracionAlternativa = mejorRuta.DuracionMinutos;
+
+            double tiempoAdicional = Math.Max(
+                0, duracionAlternativa - duracionHabitual);
+
+            var resultadoDesvio = new ResultadoDesvioDto
+            {
+                DistanciaHabitualKm = distanciaHabitual,
+                DistanciaAlternativaKm = distanciaAlternativa,
+                DesvioKm = desvio,
+
+                DuracionHabitualMin = duracionHabitual,
+                DuracionAlternativaMin = duracionAlternativa,
+                TiempoAdicionalMin = tiempoAdicional,
+
+                Compatible = desvio <= (double)viaje.DesvioMaxKm,
+
+                PuntosRutaAlternativa = mejorRuta.PuntosRuta
+                    .Select(p => new CoordenadaDto
+                    {
+                        Latitud = p.Latitud,
+                        Longitud = p.Longitud
+                    })
+                    .ToList()
+            };
+
+            return ResultadoOperacion<ResultadoDesvioDto>.Ok(
+                resultadoDesvio);
+        }
 
         public async Task<ResultadoOperacion<bool>> CambiarEstadoActivoAsync(int viajeId, int usuarioId)
         {
