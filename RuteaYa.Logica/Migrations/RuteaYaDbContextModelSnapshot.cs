@@ -46,6 +46,9 @@ namespace RuteaYa.Logica.Migrations
                     b.Property<decimal>("DestinoLng")
                         .HasColumnType("decimal(9,6)");
 
+                    b.Property<decimal>("DesvioKm")
+                        .HasColumnType("decimal(6,2)");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -79,9 +82,14 @@ namespace RuteaYa.Logica.Migrations
                     b.Property<int>("UsuarioId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ViajeId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("UsuarioId");
+
+                    b.HasIndex("ViajeId");
 
                     b.ToTable("Envios");
                 });
@@ -99,6 +107,9 @@ namespace RuteaYa.Logica.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("EnvioId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Lat")
                         .HasColumnType("decimal(9,6)");
 
@@ -107,6 +118,10 @@ namespace RuteaYa.Logica.Migrations
 
                     b.Property<int>("Orden")
                         .HasColumnType("int");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("ViajeId")
                         .HasColumnType("int");
@@ -238,7 +253,14 @@ namespace RuteaYa.Logica.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("RuteaYa.Entidades.Viaje", "Viaje")
+                        .WithMany()
+                        .HasForeignKey("ViajeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Usuario");
+
+                    b.Navigation("Viaje");
                 });
 
             modelBuilder.Entity("RuteaYa.Entidades.Parada", b =>

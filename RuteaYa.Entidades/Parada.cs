@@ -23,5 +23,8 @@ namespace RuteaYa.Entidades
         public decimal Lng { get; set; }
 
         public Viaje Viaje { get; set; } = null!;
+        public int? EnvioId { get; set; }
+
+        public string Tipo { get; set; } = "Intermedia";
     }
 }

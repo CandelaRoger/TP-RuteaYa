@@ -49,6 +49,12 @@ namespace RuteaYa.Logica
                 .WithMany()
                 .HasForeignKey(e => e.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Envio>()
+                .HasOne(e => e.Viaje)
+                .WithMany()
+                .HasForeignKey(e => e.ViajeId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

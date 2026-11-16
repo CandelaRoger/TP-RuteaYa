@@ -3,8 +3,8 @@ using RuteaYa.Logica;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using RuteaYa.Logica.Rutas;
-
 
 var builder = WebApplication.CreateBuilder(args);
 var hereApiKey = builder.Configuration["Here:ApiKey"];
@@ -25,8 +25,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddControllers();
 
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Ingresá tu token JWT",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    options.AddSecurityRequirement(document =>
+        new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+        });
+});
 
 builder.Services.AddDbContext<RuteaYaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -46,6 +65,12 @@ else
     builder.Services.AddHttpClient<IRutaService, HereRutaService>();
 }
 
+builder.Services.AddScoped<IViajeService, ViajeService>();
+builder.Services.AddScoped<IOportunidadService,OportunidadService>();
+
+builder.Services.AddHttpClient<IRutaService, HereRutaService>();
+
+builder.Services.AddScoped<OptimizadorRecorridos>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

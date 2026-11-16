@@ -9,8 +9,9 @@ namespace RuteaYa.Entidades
         [Key]
         public int Id { get; set; }
 
-        public int UsuarioId { get; set; } 
-
+        public int UsuarioId { get; set; }
+        public int? ViajeId { get; set; }
+        public Viaje? Viaje { get; set; }
         [Required]
         [MaxLength(200)]
         public string OrigenDir { get; set; } = string.Empty;
@@ -53,5 +54,8 @@ namespace RuteaYa.Entidades
         public string Estado { get; set; } = "Buscando conductor";
 
         public Usuario Usuario { get; set; } = null!;
+
+        [Column(TypeName = "decimal(6,2)")]
+        public decimal DesvioKm { get; set; }
     }
 }
