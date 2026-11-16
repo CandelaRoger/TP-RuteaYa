@@ -78,6 +78,7 @@ else
                         {
                             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">Entregado</span>
                         }
+                       
                         else if (envio.Estado == "Cancelado")
                         {
                             <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2">Cancelado</span>
@@ -86,6 +87,11 @@ else
                         {
                             <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2">@envio.Estado</span>
                         }
+                        <a asp-action="Detalles"
+                           asp-route-id="@envio.Id"
+                           class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            <i class="bi bi-eye"></i>detalles
+                        </a>
 
                         @* *@
                         @if (envio.Estado == "Buscando conductor" || envio.Estado == "Conductor asignado")

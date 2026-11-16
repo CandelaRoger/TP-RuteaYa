@@ -75,6 +75,28 @@ namespace RuteaYa.MVC.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Detalles(int id)
+        {
+            var client = await CrearClienteConAuthAsync();
+
+            var response = await client.GetAsync($"api/enviosApi/{id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                TempData["MensajeError"] = "No se encontró el envío solicitado.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var envio = await response.Content.ReadFromJsonAsync<EnvioDto>();
+
+            if (envio == null)
+                return RedirectToAction(nameof(Index));
+
+            return View(envio);
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> Cancelar(int id)
         {
