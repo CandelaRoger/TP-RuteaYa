@@ -1,20 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using RuteaYa.DTOs;
 using RuteaYa.Entidades;
+using RuteaYa.Logica.Rutas;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace RuteaYa.Logica
 {
     public class EnvioService : IEnvioService
     {
         private readonly RuteaYaDbContext _context;
+        private readonly IRutaService _rutaService;
 
-        public EnvioService(RuteaYaDbContext context)
+        public EnvioService(RuteaYaDbContext context, IRutaService rutaService)
         {
             _context = context;
+            _rutaService = rutaService;
+
         }
 
         public async Task<ResultadoOperacion<EnvioDto>> CrearEnvioAsync(CrearEnvioDto dto, int usuarioId)
@@ -50,15 +53,23 @@ namespace RuteaYa.Logica
             if (dto.MontoOfrecido <= 0)
                 return ResultadoOperacion<EnvioDto>.Falla("El monto ofrecido debe ser mayor a cero.");
 
+            var coordenadasOrigen = await _rutaService.GeocodificarAsync(dto.Origen.Trim());
+            var coordenadasDestino = await _rutaService.GeocodificarAsync(dto.Destino.Trim());
+
+            if (coordenadasOrigen == null || coordenadasDestino == null)
+            {
+                throw new Exception("No se pudieron obtener las coordenadas de las direcciones del envío.");
+            }
+
             var envio = new Envio
             {
                 UsuarioId = usuarioId,
                 OrigenDir = dto.Origen.Trim(),
-                OrigenLat = -34.5833m, 
-                OrigenLng = -58.4233m,
+                OrigenLat = (decimal)coordenadasOrigen.Latitud,
+                OrigenLng = (decimal)coordenadasOrigen.Longitud,
+                DestinoLat = (decimal)coordenadasDestino.Latitud,
+                DestinoLng = (decimal)coordenadasDestino.Longitud,
                 DestinoDir = dto.Destino.Trim(),
-                DestinoLat = -34.6037m,
-                DestinoLng = -58.3816m,
                 Fecha = dto.Fecha.Date,
                 Peso = dto.Peso,
                 Tamanio = dto.Tamanio.Trim(),

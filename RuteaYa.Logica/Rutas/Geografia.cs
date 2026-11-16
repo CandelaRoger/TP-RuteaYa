@@ -4,7 +4,6 @@
     {
         private const double RadioTierraKm = 6371.0;
 
-        // Distancia en línea recta entre dos puntos (fórmula de Haversine)
         public static double DistanciaKm(Coordenadas a, Coordenadas b)
         {
             double dLat = ARadianes(b.Latitud - a.Latitud);

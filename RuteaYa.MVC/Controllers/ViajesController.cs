@@ -102,6 +102,14 @@ namespace RuteaYa.MVC.Controllers
             if (viaje == null)
                 return NotFound();
 
+            if (viaje.TieneEnviosAsignados)
+            {
+                TempData["MensajeError"] =
+                    "No podés editar este viaje porque tiene envíos asignados.";
+
+                return RedirectToAction(nameof(Detalles), new { id });
+            }
+
             var model = new CrearViajeViewModel
             {
                 Origen = viaje.OrigenDir,

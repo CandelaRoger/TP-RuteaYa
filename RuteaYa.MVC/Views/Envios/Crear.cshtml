@@ -13,17 +13,44 @@
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 rounded-4 mb-4" role="alert"></div>
 
                 <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label asp-for="Origen" class="form-label small text-muted fw-semibold">Origen</label>
-                        <input asp-for="Origen" class="form-control form-control-lg bg-light border-0" placeholder="¿Dónde lo retiran? (Ej: Plaza Italia)" />
-                        <span asp-validation-for="Origen" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Destino" class="form-label small text-muted fw-semibold">Destino</label>
-                        <input asp-for="Destino" class="form-control form-control-lg bg-light border-0" placeholder="¿A dónde llega? (Ej: Obelisco)" />
-                        <span asp-validation-for="Destino" class="text-danger small"></span>
-                    </div>
-                </div>
+    <div class="col-md-6">
+        <label asp-for="Origen" class="form-label small text-muted fw-semibold">Origen</label>
+
+        <div class="position-relative">
+            <input asp-for="Origen"
+                   id="Origen"
+                   class="form-control form-control-lg bg-light border-0"
+                   placeholder="¿Dónde lo retiran?"
+                   autocomplete="off" />
+
+            <div id="sugerenciasOrigen"
+                 class="list-group position-absolute w-100 shadow-sm"
+                 style="z-index: 1000; display: none;">
+            </div>
+        </div>
+
+        <span asp-validation-for="Origen" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label asp-for="Destino" class="form-label small text-muted fw-semibold">Destino</label>
+
+        <div class="position-relative">
+            <input asp-for="Destino"
+                   id="Destino"
+                   class="form-control form-control-lg bg-light border-0"
+                   placeholder="¿A dónde llega?"
+                   autocomplete="off" />
+
+            <div id="sugerenciasDestino"
+                 class="list-group position-absolute w-100 shadow-sm"
+                 style="z-index: 1000; display: none;">
+            </div>
+        </div>
+
+        <span asp-validation-for="Destino" class="text-danger small"></span>
+    </div>
+</div>
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
@@ -72,3 +99,77 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function configurarAutocompletado(campo, contenedor) {
+            let temporizador;
+
+            campo.addEventListener("input", function () {
+                clearTimeout(temporizador);
+
+                const texto = campo.value.trim();
+
+                if (texto.length < 3) {
+                    contenedor.innerHTML = "";
+                    contenedor.style.display = "none";
+                    return;
+                }
+
+                temporizador = setTimeout(async () => {
+                    try {
+                        const respuesta = await fetch(
+                            `/Viajes/BuscarDirecciones?texto=${encodeURIComponent(texto)}`
+                        );
+
+                        if (!respuesta.ok) return;
+
+                        const lugares = await respuesta.json();
+
+                        contenedor.innerHTML = "";
+
+                        lugares.forEach(lugar => {
+                            const opcion = document.createElement("button");
+                            opcion.type = "button";
+                            opcion.className = "list-group-item list-group-item-action";
+
+                            opcion.textContent = lugar.titulo
+                                ? `${lugar.titulo} - ${lugar.direccion}`
+                                : lugar.direccion;
+
+                            opcion.addEventListener("click", function () {
+                                campo.value = lugar.direccion;
+                                contenedor.style.display = "none";
+                                contenedor.innerHTML = "";
+                            });
+
+                            contenedor.appendChild(opcion);
+                        });
+
+                        contenedor.style.display =
+                            lugares.length > 0 ? "block" : "none";
+                    } catch (error) {
+                        console.error("Error al buscar direcciones:", error);
+                    }
+                }, 350);
+            });
+
+            document.addEventListener("click", function (evento) {
+                if (!campo.contains(evento.target) &&
+                    !contenedor.contains(evento.target)) {
+                    contenedor.style.display = "none";
+                }
+            });
+        }
+
+        configurarAutocompletado(
+            document.getElementById("Origen"),
+            document.getElementById("sugerenciasOrigen")
+        );
+
+        configurarAutocompletado(
+            document.getElementById("Destino"),
+            document.getElementById("sugerenciasDestino")
+        );
+    </script>
+}

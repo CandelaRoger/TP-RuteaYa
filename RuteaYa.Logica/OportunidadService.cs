@@ -9,8 +9,8 @@ namespace RuteaYa.Logica
     {
         private const string EstadoDisponible = "Buscando conductor";
         private const string EstadoAsignado = "Conductor asignado";
-        private const double FactorMargen = 2.0;      // tolerancia del filtro en línea recta
-        private const int MaxCandidatosAHere = 15;    // tope de llamadas al servicio de mapas
+        private const double FactorMargen = 2.0;      
+        private const int MaxCandidatosAHere = 15;   
 
         private readonly RuteaYaDbContext _context;
         private readonly IRutaService _rutaService;
@@ -41,7 +41,6 @@ namespace RuteaYa.Logica
                     "El viaje no existe, está inactivo o no te pertenece.");
             }
 
-            // Capacidad y desvío que ya comprometen los envíos asignados
             var asignados = await _context.Envios
                 .AsNoTracking()
                 .Where(e => e.ViajeId == viajeId && e.Estado != "Cancelado")
@@ -55,7 +54,6 @@ namespace RuteaYa.Logica
             if (paquetesLibres <= 0 || pesoLibre <= 0 || desvioRestante <= 0)
                 return new List<OportunidadDto>();
 
-            // Filtros baratos en SQL
             var envios = await _context.Envios
                 .AsNoTracking()
                 .Where(e =>
@@ -66,7 +64,6 @@ namespace RuteaYa.Logica
                     e.Peso <= pesoLibre)
                 .ToListAsync();
 
-            // Filtro por día de la semana
             var diasPermitidos = viaje.DiasSemana
                 .Select(d => (int)d.DiaSemana)
                 .ToHashSet();
@@ -75,10 +72,8 @@ namespace RuteaYa.Logica
                 .Where(e => diasPermitidos.Contains(ADiaDelViaje(e.Fecha)))
                 .ToList();
 
-            // El desvío individual se mide sobre el recorrido habitual (sin otros paquetes)
             var puntosHabituales = ArmarPuntos(viaje, soloHabituales: true);
 
-            // Haversine: mejor lugar para el paquete y descarte de los claramente lejanos
             var preseleccionados = candidatos
                 .Select(e =>
                 {
@@ -92,7 +87,6 @@ namespace RuteaYa.Logica
                 .Take(MaxCandidatosAHere)
                 .ToList();
 
-            // Una sola llamada al mapa por candidato
             var oportunidades = new List<OportunidadDto>();
             int fallos = 0;
 
@@ -102,13 +96,12 @@ namespace RuteaYa.Logica
                 {
                     var evaluacion = await EvaluarAsync(viaje, c.Envio, c.Ruta);
 
-                    // El filtro definitivo usa la distancia real y el desvío que queda libre
                     if (evaluacion != null && evaluacion.DesvioKm <= desvioRestante)
                         oportunidades.Add(evaluacion);
                 }
                 catch (HttpRequestException)
                 {
-                    fallos++; // se saltea este envío, no se cae la lista
+                    fallos++; 
                 }
             }
 
@@ -176,10 +169,8 @@ namespace RuteaYa.Logica
                 return ResultadoOperacion<bool>.Falla(
                     "El envío supera el peso disponible del viaje.");
 
-            // Desvío que ya comprometen los envíos asignados
             decimal desvioAsignado = enviosAsignados.Sum(e => e.DesvioKm);
 
-            // Desvío individual de este envío, medido sobre el recorrido habitual
             var puntosHabituales = ArmarPuntos(viaje, soloHabituales: true);
             var (retiro, entrega) = PuntosDelEnvio(envio);
             var rutaIndividual = PlanificadorRuta.MejorInsercion(puntosHabituales, retiro, entrega);
@@ -199,12 +190,10 @@ namespace RuteaYa.Logica
                 return ResultadoOperacion<bool>.Falla(
                     "No se pudo calcular el recorrido con este envío.");
 
-            // Regla aditiva: la suma de los desvíos no puede pasar el máximo del viaje
             if ((decimal)evaluacion.DesvioKm + desvioAsignado > viaje.DesvioMaxKm)
                 return ResultadoOperacion<bool>.Falla(
                     $"El envío supera el desvío máximo del viaje (ya se usan {desvioAsignado:0.0} de {viaje.DesvioMaxKm:0.0} km).");
 
-            // Asignar
             envio.ViajeId = viajeId;
             envio.Estado = EstadoAsignado;
             envio.DesvioKm = (decimal)evaluacion.DesvioKm;
@@ -229,10 +218,7 @@ namespace RuteaYa.Logica
                 Lng = envio.DestinoLng
             };
 
-            // Las paradas se ubican donde da la mejor inserción sobre TODAS las paradas
-            // (habituales + las de envíos ya asignados). Esta parte no llama al mapa.
-            // rutaCompleta[0] es el origen, así que la parada k tiene Orden k.
-            // (IndexOf compara por referencia: son las mismas instancias que se insertaron.)
+            
             var (retiroTotal, entregaTotal) = PuntosDelEnvio(envio);
             var rutaCompleta = PlanificadorRuta.MejorInsercion(
                 ArmarPuntos(viaje, soloHabituales: false), retiroTotal, entregaTotal);
@@ -259,7 +245,6 @@ namespace RuteaYa.Logica
             int viajeId,
             int usuarioId)
         {
-            // 1. Verificar que el viaje pertenece al conductor
             var existeViaje = await _context.Viajes
                 .AsNoTracking()
                 .AnyAsync(v =>
@@ -272,7 +257,6 @@ namespace RuteaYa.Logica
                     "El viaje no existe o no te pertenece.");
             }
 
-            // 2. Buscar los envíos asignados a ese viaje
             var envios = await _context.Envios
                 .AsNoTracking()
                 .Where(e =>
@@ -300,7 +284,6 @@ namespace RuteaYa.Logica
             int viajeId,
             int usuarioId)
         {
-            // 1. Buscar el viaje y verificar su propietario
             var viaje = await _context.Viajes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(v =>
@@ -313,7 +296,6 @@ namespace RuteaYa.Logica
                     "El viaje no existe o no te pertenece.");
             }
 
-            // 2. Calcular los paquetes y el peso ocupado
             var ocupacion = await _context.Envios
                 .AsNoTracking()
                 .Where(e =>
@@ -330,7 +312,6 @@ namespace RuteaYa.Logica
             int paquetesOcupados = ocupacion?.Cantidad ?? 0;
             decimal pesoOcupado = ocupacion?.PesoTotal ?? 0m;
 
-            // 3. Calcular la capacidad restante
             return new CapacidadViajeDto
             {
                 ViajeId = viaje.Id,
@@ -356,7 +337,6 @@ namespace RuteaYa.Logica
                 .BeginTransactionAsync(
                     System.Data.IsolationLevel.Serializable);
 
-            // Verificar que el viaje pertenezca al conductor
             var viaje = await _context.Viajes
                 .FirstOrDefaultAsync(v =>
                     v.Id == viajeId &&
@@ -366,7 +346,6 @@ namespace RuteaYa.Logica
                 return ResultadoOperacion<bool>.Falla(
                     "El viaje no existe o no te pertenece.");
 
-            // Buscar el envío asignado
             var envio = await _context.Envios
                 .FirstOrDefaultAsync(e =>
                     e.Id == envioId &&
@@ -377,17 +356,14 @@ namespace RuteaYa.Logica
                 return ResultadoOperacion<bool>.Falla(
                     "El envío no está asignado a este viaje.");
 
-            // Buscar las paradas pertenecientes al envío
             var paradas = await _context.Paradas
                 .Where(p =>
                     p.ViajeId == viajeId &&
                     p.EnvioId == envioId)
                 .ToListAsync();
 
-            // Eliminar retiro y entrega
             _context.Paradas.RemoveRange(paradas);
 
-            // Devolver el envío a su estado anterior y liberar su desvío
             envio.ViajeId = null;
             envio.DesvioKm = 0;
             envio.Estado = EstadoDisponible;
@@ -406,7 +382,6 @@ namespace RuteaYa.Logica
             if (resultado == null)
                 return null;
 
-            // Desvío individual: ruta con el envío menos el recorrido habitual del viaje
             double desvio = Math.Max(0, resultado.DistanciaKm - (double)viaje.DistanciaKm);
             double minutosExtra = Math.Max(0, resultado.DuracionMinutos - viaje.DuracionMin);
 
@@ -428,8 +403,7 @@ namespace RuteaYa.Logica
             };
         }
 
-        // soloHabituales = true: origen, paradas originales y destino (para el desvío individual)
-        // soloHabituales = false: incluye también retiros y entregas de envíos ya asignados
+        
         private static List<Coordenadas> ArmarPuntos(Viaje viaje, bool soloHabituales)
         {
             var puntos = new List<Coordenadas>
@@ -454,21 +428,17 @@ namespace RuteaYa.Logica
             return puntos;
         }
 
-        // Se compara por exclusión para que las paradas viejas (Tipo = "") cuenten como habituales
-        private static bool EsHabitual(Parada p) => p.Tipo != "Retiro" && p.Tipo != "Entrega";
 
         private static (Coordenadas Retiro, Coordenadas Entrega) PuntosDelEnvio(Envio e) => (
             new Coordenadas { Latitud = (double)e.OrigenLat, Longitud = (double)e.OrigenLng },
             new Coordenadas { Latitud = (double)e.DestinoLat, Longitud = (double)e.DestinoLng });
 
-        // DayOfWeek: 0 = domingo ... 6 = sábado. En RuteaYa: 1 = lunes ... 7 = domingo.
         private static int ADiaDelViaje(DateTime fecha)
         {
             int d = (int)fecha.DayOfWeek;
             return d == 0 ? 7 : d;
         }
 
-        // Umbrales calibrados con los ejemplos del PDF (desvío máximo 5 km)
         private static string Clasificar(double desvio, double desvioMax)
         {
             if (desvioMax <= 0) return "Mucho desvío";
@@ -496,7 +466,6 @@ namespace RuteaYa.Logica
                 "compatibilidad" => lista.OrderBy(o => Rango(o.Compatibilidad))
                                          .ThenByDescending(o => o.MontoOfrecido).ToList(),
 
-                // ganancia; en empate gana el de menor desvío (regla del PDF)
                 _ => lista.OrderByDescending(o => o.MontoOfrecido)
                           .ThenBy(o => o.DesvioKm).ToList()
             };

@@ -22,6 +22,7 @@ namespace RuteaYa.DTOs
         public decimal DistanciaKm { get; set; }
         public int DuracionMin { get; set; }
         public bool Activo { get; set; }
+        public bool TieneEnviosAsignados { get; set; }
 
         public List<byte> DiasSemana { get; set; } = new();
         public string DiasTexto { get; set; } = string.Empty;    

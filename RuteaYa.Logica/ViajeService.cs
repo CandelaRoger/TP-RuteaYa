@@ -193,7 +193,14 @@ namespace RuteaYa.Logica
             if (viaje == null)
                 return ResultadoOperacion<ViajeDto>.Falla(
                     "El viaje no fue encontrado o no te pertenece.");
+            var tieneEnviosAsignados = await _context.Envios
+            .AnyAsync(e => e.ViajeId == viajeId);
 
+            if (tieneEnviosAsignados)
+            {
+                return ResultadoOperacion<ViajeDto>.Falla(
+                    "No se puede editar este viaje porque tiene envíos asignados.");
+            }
             var errorValidacion = ValidarViaje(dto);
 
             if (errorValidacion != null)
@@ -361,6 +368,8 @@ namespace RuteaYa.Logica
                 return null;
 
             var dto = MapearAViajeDto(viaje);
+            dto.TieneEnviosAsignados = await _context.Envios
+            .AnyAsync(e => e.ViajeId == viajeId);
 
             var puntos = new List<Coordenadas>
     {
@@ -411,7 +420,7 @@ namespace RuteaYa.Logica
             if (viaje == null)
                 return ResultadoOperacion<ResultadoDesvioDto>.Falla(
                     "El viaje no fue encontrado o no te pertenece.");
-
+            
             if (!viaje.Activo)
                 return ResultadoOperacion<ResultadoDesvioDto>.Falla(
                     "No se puede calcular el desvío de un viaje inactivo.");
