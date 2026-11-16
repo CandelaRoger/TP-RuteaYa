@@ -57,67 +57,115 @@
 
                 <div class="col-md-6 mb-3">
                     <div class="card shadow-sm">
-                        <div class="card-body">
+                        
+<div class="card-body p-4">
 
-                            <h5 class="card-title">
-                                @oportunidad.OrigenDir
-                                →
-                                @oportunidad.DestinoDir
-                            </h5>
+    <h5 class="card-title fw-bold mb-2">
+        @oportunidad.OrigenDir
+        <span class="text-primary">→</span>
+        @oportunidad.DestinoDir
+    </h5>
 
-                            <p>
-                                <strong>Descripción:</strong>
-                                @oportunidad.Descripcion
-                            </p>
+    <p class="text-muted small mb-3">
+        @oportunidad.Descripcion ·
+        @oportunidad.Fecha.ToString("dd/MM/yyyy")
+    </p>
 
-                            <p>
-                                <strong>Fecha:</strong>
-                                @oportunidad.Fecha.ToString("dd/MM/yyyy")
-                            </p>
+    <h6 class="fw-bold mb-3">
+        Ruta habitual vs. con el envío
+    </h6>
+    <div class="d-flex justify-content-between border-bottom py-2">
+    <span>Distancia habitual</span>
+    <strong>@oportunidad.DistanciaHabitualKm.ToString("0.0") km</strong>
+</div>
 
-                            <p>
-                                <strong>Peso:</strong>
-                                @oportunidad.Peso kg
-                            </p>
+<div class="d-flex justify-content-between border-bottom py-2">
+    <span>Distancia con el envío</span>
+    <strong>@oportunidad.DistanciaConEnvioKm.ToString("0.0") km</strong>
+</div>
+    <div class="d-flex justify-content-between border-bottom py-2">
+        <span>Desvío</span>
+        <strong>
+            +@oportunidad.DesvioKm.ToString("0.0") km
+        </strong>
+    </div>
 
-                            <p>
-                                <strong>Tamaño:</strong>
-                                @oportunidad.Tamanio
-                            </p>
+   <div class="d-flex justify-content-between border-bottom py-2">
+    <span>Tiempo habitual</span>
+    <strong>@oportunidad.TiempoHabitualMin min</strong>
+</div>
 
-                            <p>
-                                <strong>Desvío:</strong>
-                                @oportunidad.DesvioKm.ToString("0.0") km
-                                (+@oportunidad.TiempoAdicionalMin.ToString("0") min)
-                                <span class="badge @clase ms-2">@oportunidad.Compatibilidad</span>
-                            </p>
+<div class="d-flex justify-content-between border-bottom py-2">
+    <span>Tiempo adicional</span>
+    <strong class="text-warning">
+        +@oportunidad.TiempoAdicionalMin.ToString("0") min
+    </strong>
+</div>
+    <div class="d-flex justify-content-between border-bottom py-2">
+        <span>Peso</span>
+        <strong>@oportunidad.Peso.ToString("0.##") kg</strong>
+    </div>
+    <div class="d-flex justify-content-between border-bottom py-2">
+    <span>Capacidad restante al aceptar</span>
+    <strong>
+        @oportunidad.CapacidadRestanteKg.ToString("0.##") kg ·
+        @oportunidad.PaquetesRestantes paquetes
+    </strong>
+</div>
+    <div class="d-flex justify-content-between border-bottom py-2">
+        <span>Tamaño</span>
+        <strong>@oportunidad.Tamanio</strong>
+    </div>
 
-                            <p class="text-success fw-bold">
-                                Ofrecen:
-                                @oportunidad.MontoOfrecido.ToString("C")
-                            </p>
+    <div class="d-flex justify-content-between align-items-center py-2">
+        <span>Compatibilidad</span>
+        <span class="badge @clase">
+            @oportunidad.Compatibilidad
+        </span>
+    </div>
 
-                            <form asp-controller="Oportunidades"
-                                  asp-action="Aceptar"
-                                  method="post">
+    <div class="bg-success bg-opacity-10 rounded-3 p-3 my-3">
+        <div class="text-success small fw-semibold">
+            Pago ofrecido
+        </div>
 
-                                @Html.AntiForgeryToken()
+        <div class="fs-3 fw-bold text-success">
+            @oportunidad.MontoOfrecido.ToString("C")
+        </div>
 
-                                <input type="hidden"
-                                       name="viajeId"
-                                       value="@ViewBag.ViajeId" />
+        @if (oportunidad.DesvioKm > 0)
+        {
+            <div class="small text-success">
+                @((oportunidad.MontoOfrecido /
+                    (decimal)oportunidad.DesvioKm).ToString("C"))
+                por km adicional
+            </div>
+        }
+    </div>
 
-                                <input type="hidden"
-                                       name="envioId"
-                                       value="@oportunidad.EnvioId" />
+    <form asp-controller="Oportunidades"
+          asp-action="Aceptar"
+          method="post">
 
-                                <button type="submit"
-                                        class="btn btn-success w-100"
-                                        onclick="return confirm('¿Querés aceptar este envío?');">
-                                    Aceptar envío
-                                </button>
-                            </form>
-                        </div>
+        @Html.AntiForgeryToken()
+
+        <input type="hidden"
+               name="viajeId"
+               value="@ViewBag.ViajeId" />
+
+        <input type="hidden"
+               name="envioId"
+               value="@oportunidad.EnvioId" />
+
+        <button type="submit"
+                class="btn btn-success w-100 rounded-3 py-2 fw-bold"
+                onclick="return confirm('¿Querés aceptar este envío?');">
+            Aceptar envío
+        </button>
+    </form>
+
+</div>
+
                     </div>
                 </div>
             }

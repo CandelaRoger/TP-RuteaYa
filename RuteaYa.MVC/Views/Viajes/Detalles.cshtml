@@ -45,17 +45,93 @@
 
         <hr />
 
+        
         <div class="row">
             <div class="col-md-4">
-                <strong>Distancia:</strong> @Model.DistanciaKm km
+                <strong>Distancia habitual:</strong>
+                @Model.DistanciaKm km
             </div>
+
             <div class="col-md-4">
-                <strong>Duración:</strong> @Model.DuracionMin minutos
+                <strong>Duración habitual:</strong>
+                @Model.DuracionMin minutos
             </div>
+
             <div class="col-md-4">
-                <strong>Horario:</strong> @Model.HorarioTexto
+                <strong>Horario:</strong>
+                @Model.HorarioTexto
             </div>
         </div>
+
+        @if (Model.TieneEnviosAsignados)
+        {
+            <hr />
+
+            <h5 class="fw-bold mb-3">
+                Recorrido con envíos asignados
+            </h5>
+
+            @if (Model.DesvioTotalKm.HasValue &&
+                 Model.TiempoAdicionalMin.HasValue &&
+                 Model.DistanciaConEnviosKm.HasValue &&
+                 Model.DuracionConEnviosMin.HasValue)
+            {
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="text-muted small">
+                                Distancia total
+                            </div>
+                            <div class="fw-bold fs-5">
+                                @Model.DistanciaConEnviosKm.Value.ToString("N2") km
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="text-muted small">
+                                Desvío total
+                            </div>
+                            <div class="fw-bold fs-5 text-primary">
+                                +@Model.DesvioTotalKm.Value.ToString("N2") km
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="text-muted small">
+                                Duración total
+                            </div>
+                            <div class="fw-bold fs-5">
+                                @Model.DuracionConEnviosMin.Value.ToString("N0") min
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="bg-light rounded-3 p-3 h-100">
+                            <div class="text-muted small">
+                                Tiempo adicional
+                            </div>
+                            <div class="fw-bold fs-5 text-warning">
+                                +@Model.TiempoAdicionalMin.Value.ToString("N0") min
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">
+                    No se pudo calcular el recorrido con los envíos asignados.
+                </p>
+            }
+        }
+
     </div>
     <div class="d-flex flex-wrap gap-2 mb-4">
 

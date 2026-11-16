@@ -367,9 +367,35 @@ namespace RuteaYa.Logica
             if (viaje == null)
                 return null;
 
+            var idsEnviosActivos = await _context.Envios
+     .Where(e => e.ViajeId == viajeId &&
+                 e.Estado != "Cancelado")
+     .Select(e => e.Id)
+     .ToListAsync();
+
+            var paradasValidas = viaje.Paradas
+                .Where(p => p.EnvioId == null ||
+                            idsEnviosActivos.Contains(p.EnvioId.Value))
+                .OrderBy(p => p.Orden)
+                .ToList();
+
             var dto = MapearAViajeDto(viaje);
-            dto.TieneEnviosAsignados = await _context.Envios
-            .AnyAsync(e => e.ViajeId == viajeId);
+            dto.GananciaTotal = await _context.Envios
+    .Where(e => e.ViajeId == viajeId &&
+                e.Estado == "Conductor asignado")
+    .SumAsync(e => (decimal?)e.MontoOfrecido) ?? 0m;
+            dto.TieneEnviosAsignados = idsEnviosActivos.Any();
+
+            dto.Paradas = paradasValidas
+                .Select(p => new ParadaDto
+                {
+                    Id = p.Id,
+                    Orden = p.Orden,
+                    Direccion = p.Direccion,
+                    Lat = p.Lat,
+                    Lng = p.Lng
+                })
+                .ToList();
 
             var puntos = new List<Coordenadas>
     {
@@ -380,8 +406,8 @@ namespace RuteaYa.Logica
         }
     };
 
-            puntos.AddRange(viaje.Paradas
-                .OrderBy(p => p.Orden)
+            puntos.AddRange(paradasValidas
+                 .OrderBy(p => p.Orden)
                 .Select(p => new Coordenadas
                 {
                     Latitud = (double)p.Lat,
@@ -398,6 +424,22 @@ namespace RuteaYa.Logica
 
             if (resultadoRuta != null)
             {
+                dto.DistanciaConEnviosKm =
+                    Math.Round(resultadoRuta.DistanciaKm, 2);
+
+                dto.DuracionConEnviosMin =
+                    Math.Round(resultadoRuta.DuracionMinutos, 0);
+
+                dto.DesvioTotalKm = Math.Round(
+                    Math.Max(0,
+                        resultadoRuta.DistanciaKm - (double)viaje.DistanciaKm),
+                    2);
+
+                dto.TiempoAdicionalMin = Math.Round(
+                    Math.Max(0,
+                        resultadoRuta.DuracionMinutos - viaje.DuracionMin),
+                    0);
+
                 dto.PuntosRuta = resultadoRuta.PuntosRuta
                     .Select(p => new CoordenadaDto
                     {

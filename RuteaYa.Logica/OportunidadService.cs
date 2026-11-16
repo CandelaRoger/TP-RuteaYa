@@ -97,7 +97,18 @@ namespace RuteaYa.Logica
                     var evaluacion = await EvaluarAsync(viaje, c.Envio, c.Ruta);
 
                     if (evaluacion != null && evaluacion.DesvioKm <= desvioRestante)
+                    {
+                        evaluacion.TiempoHabitualMin = viaje.DuracionMin;
+
+                        // Capacidad que quedaría después de aceptar este envío
+                        evaluacion.CapacidadRestanteKg =
+                            Math.Max(0m, pesoLibre - c.Envio.Peso);
+
+                        evaluacion.PaquetesRestantes =
+                            Math.Max(0, paquetesLibres - 1);
+
                         oportunidades.Add(evaluacion);
+                    }
                 }
                 catch (HttpRequestException)
                 {
@@ -427,9 +438,9 @@ namespace RuteaYa.Logica
 
             return puntos;
         }
-        
-         private static bool EsHabitual(Parada p) =>
-            p.Tipo == "Retiro" || p.Tipo == "Entrega";
+
+        private static bool EsHabitual(Parada p) =>
+    p.EnvioId == null;
         private static (Coordenadas Retiro, Coordenadas Entrega) PuntosDelEnvio(Envio e) => (
             new Coordenadas { Latitud = (double)e.OrigenLat, Longitud = (double)e.OrigenLng },
             new Coordenadas { Latitud = (double)e.DestinoLat, Longitud = (double)e.DestinoLng });
