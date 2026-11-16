@@ -427,8 +427,9 @@ namespace RuteaYa.Logica
 
             return puntos;
         }
-
-
+        
+         private static bool EsHabitual(Parada p) =>
+            p.Tipo == "Retiro" || p.Tipo == "Entrega";
         private static (Coordenadas Retiro, Coordenadas Entrega) PuntosDelEnvio(Envio e) => (
             new Coordenadas { Latitud = (double)e.OrigenLat, Longitud = (double)e.OrigenLng },
             new Coordenadas { Latitud = (double)e.DestinoLat, Longitud = (double)e.DestinoLng });
