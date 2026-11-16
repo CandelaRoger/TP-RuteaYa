@@ -13,6 +13,7 @@ namespace RuteaYa.Logica
         Task<List<ViajeDto>> ObtenerViajesPorUsuarioAsync(int usuarioId, string? filtro = "Todos");
         Task<ViajeDto?> ObtenerViajePorIdAsync(int viajeId, int usuarioId);
         Task<ResultadoOperacion<bool>> CambiarEstadoActivoAsync(int viajeId, int usuarioId);
+        Task<ResultadoOperacion<ResultadoDesvioDto>> CalcularDesvioAsync(int viajeId, int envioId, int usuarioId);
     }
 
     public class ResultadoOperacion<T>

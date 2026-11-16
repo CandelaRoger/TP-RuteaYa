@@ -107,6 +107,32 @@ namespace RuteaYa.WebApi.Controllers
             return Ok(new { mensaje = "Estado del viaje actualizado correctamente.", activo = resultado.Datos });
         }
 
+        [HttpGet("{viajeId}/envios/{envioId}/desvio")]
+        public async Task<IActionResult> CalcularDesvio(int viajeId, int envioId)
+        {
+            string? userIdClaim = ExtraerIdDelClaim();
+
+            if (!int.TryParse(userIdClaim, out int uid))
+            {
+                return Unauthorized(new
+                {
+                    mensaje = "Inicie sesión nuevamente."
+                });
+            }
+
+            var resultado = await _viajeService.CalcularDesvioAsync(
+                viajeId, envioId, uid);
+
+            if (!resultado.Exitoso)
+            {
+                return BadRequest(new
+                {
+                    mensaje = resultado.MensajeError
+                });
+            }
+
+            return Ok(resultado.Datos);
+        }
         private string? ExtraerIdDelClaim()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value
