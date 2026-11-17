@@ -133,6 +133,26 @@ namespace RuteaYa.Logica.Migrations
                     b.ToTable("Paradas");
                 });
 
+            modelBuilder.Entity("RuteaYa.Entidades.TokenRevocado", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("FechaExpiracion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TokensRevocados");
+                });
+
             modelBuilder.Entity("RuteaYa.Entidades.Usuario", b =>
                 {
                     b.Property<int>("Id")

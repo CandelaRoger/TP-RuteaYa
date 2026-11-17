@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using RuteaYa.Logica;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RuteaYa.DTOs;
+using RuteaYa.Logica;
 namespace RuteaYa.WebApi.Controllers
 {
   
@@ -9,10 +10,12 @@ namespace RuteaYa.WebApi.Controllers
         public class AuthApiController : Controller
         {
             private readonly IAuthService _authService;
+             private readonly ITokenService _tokenService;
 
-            public AuthApiController(IAuthService authService)
+        public AuthApiController(IAuthService authService, ITokenService tokenService)
             {
                 _authService = authService;
+                _tokenService = tokenService;
             }
 
         [HttpPost("login")]
@@ -46,5 +49,22 @@ namespace RuteaYa.WebApi.Controllers
                 return StatusCode(201, new { mensaje = "Usuario registrado correctamente" });
             }
 
-         }
+
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            // Extraemos el token crudo del header "Authorization: Bearer <token>"
+            var authHeader = Request.Headers["Authorization"].ToString();
+            var token = authHeader.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim();
+
+            if (string.IsNullOrWhiteSpace(token))
+                return BadRequest("Token no proporcionado.");
+
+            await _tokenService.RevocarTokenAsyncr(token);
+            return Ok(new { mensaje = "Sesión cerrada y token revocado." });
+        }
+
+    }
 }
