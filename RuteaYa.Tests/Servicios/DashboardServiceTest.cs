@@ -9,7 +9,7 @@ public class DashboardServiceTest
 {
     private class GananciasMensualesServiceFake : IGananciasMensualesService
     {
-        public Task<ResumenGananciasMensualDto> ObtenerResumenAsync(int usuarioId)
+        public Task<ResumenGananciasMensualDto> ObtenerResumenAsync(int usuarioId, string criterio = "ganancia")
         {
             return Task.FromResult(new ResumenGananciasMensualDto
             {

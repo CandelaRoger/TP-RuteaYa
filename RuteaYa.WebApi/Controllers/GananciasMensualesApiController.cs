@@ -20,7 +20,7 @@ namespace RuteaYa.WebApi.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ObtenerResumen()
+        public async Task<IActionResult> ObtenerResumen([FromQuery] string criterio = "ganancia")
         {
             var usuarioIdClaim =
                 User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -30,7 +30,7 @@ namespace RuteaYa.WebApi.Controllers
                 return Unauthorized();
 
             var resumen = await _gananciasService.ObtenerResumenAsync(
-                usuarioId);
+                usuarioId, criterio);
 
             return Ok(resumen);
         }

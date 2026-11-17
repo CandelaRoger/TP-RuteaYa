@@ -1,127 +1,179 @@
-﻿
-@model RuteaYa.DTOs.ResumenGananciasMensualDto
+﻿@model RuteaYa.DTOs.ResumenGananciasMensualDto
 
 @{
     ViewData["Title"] = "Potencial de ganancias mensual";
     var nombreMes = DateTime.Now.ToString("MMMM yyyy");
+    var maxSemana = Model.GananciasPorSemana.Any() ? Model.GananciasPorSemana.Max(g => g.Ganancia) : 0m;
 }
 
 <div class="container py-4">
 
-    <div class="mb-4">
-        <h2 class="fw-bold">Potencial de ganancias mensual</h2>
-        <p class="text-muted text-capitalize">
-            Resumen de @nombreMes
-        </p>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">Potencial de ganancias mensual</h2>
+            <p class="text-muted text-capitalize mb-0">
+                Resumen de @nombreMes
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small fw-semibold">Criterio:</span>
+            <div class="btn-group" role="group">
+                <a asp-action="Index" asp-route-criterio="ganancia"
+                   class="btn btn-sm rounded-pill px-3 me-1 @(Model.CriterioSeleccionado == "ganancia" ? "btn-primary" : "btn-outline-secondary")">
+                    Maximizar ganancias
+                </a>
+                <a asp-action="Index" asp-route-criterio="desvio"
+                   class="btn btn-sm rounded-pill px-3 me-1 @(Model.CriterioSeleccionado == "desvio" ? "btn-primary" : "btn-outline-secondary")">
+                    Minimizar desvíos
+                </a>
+                <a asp-action="Index" asp-route-criterio="equilibrio"
+                   class="btn btn-sm rounded-pill px-3 @(Model.CriterioSeleccionado == "equilibrio" ? "btn-primary" : "btn-outline-secondary")">
+                    Equilibrio
+                </a>
+            </div>
+        </div>
     </div>
 
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger">
+        <div class="alert alert-danger rounded-4">
             @TempData["Error"]
         </div>
     }
 
-    <div class="row g-4 mb-4">
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-primary text-white">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <span class="badge bg-white text-primary rounded-pill px-3 py-2 fw-semibold mb-2">
+                    Total Proyectado del Mes
+                </span>
+                <h1 class="display-4 fw-bold mb-1">
+                    @Model.TotalEstimado.ToString("C0")
+                </h1>
+                <p class="mb-0 opacity-75">
+                    Suma total estimada considerando lo ya cobrado más las oportunidades compatibles del mes.
+                </p>
+            </div>
+            <div class="col-lg-5 mt-3 mt-lg-0 border-start border-white border-opacity-25 ps-lg-4">
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-white border-opacity-25">
+                    <span class="opacity-75">Ganancias actuales:</span>
+                    <strong class="fs-5">@Model.GananciasActuales.ToString("C0")</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="opacity-75">Ganancias potenciales:</span>
+                    <strong class="fs-5 text-warning">@Model.GananciasPotenciales.ToString("C0")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <div class="row g-4 mb-4">
         <div class="col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
                 <p class="text-muted mb-2">Ganancias actuales</p>
-                <h3 class="fw-bold text-success">
+                <h3 class="fw-bold text-success mb-1">
                     @Model.GananciasActuales.ToString("C0")
                 </h3>
                 <small class="text-muted">
-                    Envíos entregados durante el mes
+                    Envíos entregados y cobrados durante el mes
                 </small>
             </div>
         </div>
 
         <div class="col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
                 <p class="text-muted mb-2">Ganancias potenciales</p>
-                <h3 class="fw-bold text-primary">
+                <h3 class="fw-bold text-primary mb-1">
                     @Model.GananciasPotenciales.ToString("C0")
                 </h3>
                 <small class="text-muted">
-                    Estimación de oportunidades futuras
+                    Estimación de oportunidades compatibles futuras
                 </small>
             </div>
         </div>
-
     </div>
 
     <div class="row g-3 mb-4">
-
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
-                <p class="text-muted mb-1">Viajes analizados</p>
-                <h4 class="fw-bold">@Model.ViajesAnalizados</h4>
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white text-center">
+                <p class="text-muted mb-1 small fw-semibold">VIAJES ANALIZADOS</p>
+                <h3 class="fw-bold mb-0 text-dark">@Model.ViajesAnalizados</h3>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
-                <p class="text-muted mb-1">Envíos posibles</p>
-                <h4 class="fw-bold">@Model.EnviosPosibles</h4>
-            
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white text-center">
+                <p class="text-muted mb-1 small fw-semibold">ENVÍOS POSIBLES</p>
+                <h3 class="fw-bold mb-0 text-dark">@Model.EnviosPosibles</h3>
             </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
-                <p class="text-muted mb-1">Promedio potencial por viaje</p>
-                <h4 class="fw-bold">
-                    @Model.PromedioPorViaje.ToString("C0")
-                </h4>
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white text-center">
+                <p class="text-muted mb-1 small fw-semibold">PROMEDIO POR VIAJE</p>
+                <h3 class="fw-bold mb-0 text-dark">@Model.PromedioPorViaje.ToString("C0")</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <h5 class="fw-bold mb-3">Ganancias por semana</h5>
+
+                @if (Model.GananciasPorSemana.Any())
+                {
+                    @foreach (var semana in Model.GananciasPorSemana)
+                    {
+                        var porcentaje = maxSemana > 0 ? (semana.Ganancia / maxSemana * 100) : 0m;
+                        var porcentajeStr = porcentaje.ToString("F0", System.Globalization.CultureInfo.InvariantCulture);
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold">Semana @semana.Semana</span>
+                                <strong class="text-primary">@semana.Ganancia.ToString("C0")</strong>
+                            </div>
+                            <div class="progress" style="height: 10px; border-radius: 8px; background-color: #f1f3f5;">
+                                <div class="progress-bar bg-primary" role="progressbar"
+                                     style="width: @porcentajeStr%; border-radius: 8px;">
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted mb-0">
+                        Todavía no hay ganancias potenciales calculadas para mostrar por semana.
+                    </p>
+                }
             </div>
         </div>
 
-    </div>
-  
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <h5 class="fw-bold mb-3">Mejor recorrido</h5>
 
-    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
-
-        <h5 class="fw-bold mb-3">Ganancias por semana</h5>
-
-        @if (Model.GananciasPorSemana.Any())
-        {
-            @foreach (var semana in Model.GananciasPorSemana)
-            {
-                <div class="d-flex justify-content-between align-items-center border-bottom py-3">
-                    <span>Semana @semana.Semana</span>
-                    <strong>@semana.Ganancia.ToString("C0")</strong>
-                </div>
-            }
-        }
-        else
-        {
-            <p class="text-muted mb-0">
-                Todavía no hay ganancias potenciales para mostrar.
-            </p>
-        }
-
+                @if (!string.IsNullOrWhiteSpace(Model.MejorRecorrido))
+                {
+                    <div class="p-3 rounded-4 bg-light mb-3">
+                        <span class="badge bg-success rounded-pill px-3 py-1 mb-2">Mayor Rentabilidad</span>
+                        <h6 class="fw-bold mb-1 text-dark">@Model.MejorRecorrido</h6>
+                        <small class="text-muted">Es el trayecto con mayor potencial de ingresos este mes.</small>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">
+                        Todavía no hay recorridos activos con ganancias potenciales registradas.
+                    </p>
+                }
+            </div>
+        </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 p-4">
-
-        <h5 class="fw-bold mb-2">Mejor recorrido</h5>
-
-        @if (!string.IsNullOrWhiteSpace(Model.MejorRecorrido))
-        {
-            <p class="mb-0">@Model.MejorRecorrido</p>
-        }
-        else
-        {
-            <p class="text-muted mb-0">
-                Todavía no hay recorridos con ganancias potenciales.
-            </p>
-        }
-
-    </div>
-
-    <p class="text-muted small mt-4">
-        Las ganancias potenciales son estimaciones y no representan
-        ingresos confirmados.
+    <p class="text-muted small mt-3 mb-0">
+        Las ganancias potenciales son estimaciones basadas en la compatibilidad de rutas y capacidad libre, y no representan ingresos confirmados.
     </p>
 
 </div>
