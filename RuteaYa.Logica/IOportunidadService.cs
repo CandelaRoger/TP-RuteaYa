@@ -25,7 +25,13 @@ namespace RuteaYa.Logica
     int viajeId,
     int usuarioId,
     string? orden = "ganancia");
+    
+    Task<List<OportunidadDto>> ObtenerCandidatosPorFechaAsync(
+    int viajeId,
+    int usuarioId,
+    DateTime fecha,
+    string? orden = "ganancia");
+
 
     }
-
 }

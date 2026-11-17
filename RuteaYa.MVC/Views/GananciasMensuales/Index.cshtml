@@ -1,0 +1,127 @@
+﻿
+@model RuteaYa.DTOs.ResumenGananciasMensualDto
+
+@{
+    ViewData["Title"] = "Potencial de ganancias mensual";
+    var nombreMes = DateTime.Now.ToString("MMMM yyyy");
+}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h2 class="fw-bold">Potencial de ganancias mensual</h2>
+        <p class="text-muted text-capitalize">
+            Resumen de @nombreMes
+        </p>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <p class="text-muted mb-2">Ganancias actuales</p>
+                <h3 class="fw-bold text-success">
+                    @Model.GananciasActuales.ToString("C0")
+                </h3>
+                <small class="text-muted">
+                    Envíos entregados durante el mes
+                </small>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <p class="text-muted mb-2">Ganancias potenciales</p>
+                <h3 class="fw-bold text-primary">
+                    @Model.GananciasPotenciales.ToString("C0")
+                </h3>
+                <small class="text-muted">
+                    Estimación de oportunidades futuras
+                </small>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <p class="text-muted mb-1">Viajes analizados</p>
+                <h4 class="fw-bold">@Model.ViajesAnalizados</h4>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <p class="text-muted mb-1">Envíos posibles</p>
+                <h4 class="fw-bold">@Model.EnviosPosibles</h4>
+            
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <p class="text-muted mb-1">Promedio potencial por viaje</p>
+                <h4 class="fw-bold">
+                    @Model.PromedioPorViaje.ToString("C0")
+                </h4>
+            </div>
+        </div>
+
+    </div>
+  
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+
+        <h5 class="fw-bold mb-3">Ganancias por semana</h5>
+
+        @if (Model.GananciasPorSemana.Any())
+        {
+            @foreach (var semana in Model.GananciasPorSemana)
+            {
+                <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+                    <span>Semana @semana.Semana</span>
+                    <strong>@semana.Ganancia.ToString("C0")</strong>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="text-muted mb-0">
+                Todavía no hay ganancias potenciales para mostrar.
+            </p>
+        }
+
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+
+        <h5 class="fw-bold mb-2">Mejor recorrido</h5>
+
+        @if (!string.IsNullOrWhiteSpace(Model.MejorRecorrido))
+        {
+            <p class="mb-0">@Model.MejorRecorrido</p>
+        }
+        else
+        {
+            <p class="text-muted mb-0">
+                Todavía no hay recorridos con ganancias potenciales.
+            </p>
+        }
+
+    </div>
+
+    <p class="text-muted small mt-4">
+        Las ganancias potenciales son estimaciones y no representan
+        ingresos confirmados.
+    </p>
+
+</div>
