@@ -9,7 +9,7 @@ using RuteaYa.Logica.Rutas;
 var builder = WebApplication.CreateBuilder(args);
 var hereApiKey = builder.Configuration["Here:ApiKey"];
 
-var jwtKey = builder.Configuration["JwtSettings:SecretKey"] ; 
+var jwtKey = builder.Configuration["JwtSettings:SecretKey"] ;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -21,8 +21,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
-    });
 
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var tokenService = context.HttpContext.RequestServices.GetRequiredService<ITokenService>();
+
+                // Obtenemos el token del header
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                var token = authHeader.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase).Trim();
+
+                if (!string.IsNullOrEmpty(token) && await tokenService.EstaRevocadoAsync(token))
+                {
+                    context.Fail("Este token ha sido revocado.");
+                }
+            }
+        };
+    });
 builder.Services.AddControllers();
 
 

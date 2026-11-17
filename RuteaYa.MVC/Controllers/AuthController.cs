@@ -84,6 +84,30 @@ namespace RuteaYa.MVC.Controllers
             ModelState.AddModelError(string.Empty, "Ocurrió un error al procesar el registro.");
             return View(model);
         }
+
+        [HttpPost] 
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                // El BearerTokenHandler adjunta el JWT de la cookie automáticamente
+                var client = _httpClientFactory.CreateClient("RuteaYaApi");
+                await client.PostAsync("api/authApi/logout", null);
+            }
+            catch
+            {
+                // Si la API falla o el token ya venció, igual cerramos sesión localmente
+            }
+
+            // Borramos la cookie del navegador después de avisarle a la API
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            return RedirectToAction("Login", "Auth");
+        }
+
+
+
         private async Task<HttpResponseMessage> EnviarLoginAsync(LoginViewModel model)
         {
             var loginDto = _mapper.Map<LoginDto>(model);
