@@ -14,6 +14,7 @@ namespace RuteaYa.Logica
         public DbSet<Parada> Paradas { get; set; } = null!;
         public DbSet<ViajeDia> ViajeDias { get; set; } = null!;
         public DbSet<Envio> Envios { get; set; } = null!;
+        public DbSet<TokenRevocado> TokensRevocados { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -46,13 +47,13 @@ namespace RuteaYa.Logica
 
             modelBuilder.Entity<Envio>()
                 .HasOne(e => e.Usuario)
-                .WithMany()
+                .WithMany(u => u.Envios)
                 .HasForeignKey(e => e.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Envio>()
                 .HasOne(e => e.Viaje)
-                .WithMany()
+                .WithMany(v => v.Envios)
                 .HasForeignKey(e => e.ViajeId)
                 .OnDelete(DeleteBehavior.Restrict);
         }

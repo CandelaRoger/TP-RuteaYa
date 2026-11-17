@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using RuteaYa.Entidades;
 using System;
@@ -13,10 +14,12 @@ namespace RuteaYa.Logica
     {
 
         private readonly IConfiguration _configuration;
+        private readonly RuteaYaDbContext _context;
 
-        public TokenService(IConfiguration configuration)
+        public TokenService(IConfiguration configuration, RuteaYaDbContext ruteaYaDbContext)
         {
             _configuration = configuration;
+            _context = ruteaYaDbContext;
         }
 
 
@@ -28,7 +31,25 @@ namespace RuteaYa.Logica
 
             return WriteToken(descriptor);
         }
+        public async Task RevocarTokenAsyncr(string token)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token);
 
+            var revocado = new TokenRevocado
+            {
+                Token = token,
+                FechaExpiracion = jwt.ValidTo // Guardamos cuándo vence realmente
+            };
+
+            _context.TokensRevocados.Add(revocado);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> EstaRevocadoAsync(string token)
+        {
+            return await _context.TokensRevocados.AnyAsync(t => t.Token == token);
+        }
         private JwtSettings GetJwtSettings()
         {
             var section = _configuration.GetSection("JwtSettings");
@@ -92,5 +113,8 @@ namespace RuteaYa.Logica
     public interface ITokenService
     {
         string GenerateToken(Usuario usuario);
+        Task RevocarTokenAsyncr(string token);
+        Task<bool> EstaRevocadoAsync(string token);
+
     }
 }

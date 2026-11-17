@@ -51,5 +51,7 @@ namespace RuteaYa.Entidades
         public ICollection<Parada> Paradas { get; set; } = new List<Parada>();
 
         public ICollection<ViajeDia> DiasSemana { get; set; } = new List<ViajeDia>();
+
+        public ICollection<Envio> Envios { get; set; } = new List<Envio>();
     }
 }
