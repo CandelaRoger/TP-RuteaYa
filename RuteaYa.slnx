@@ -3,5 +3,6 @@
   <Project Path="RuteaYa.Entidades/RuteaYa.Entidades.csproj" Id="4a80bedc-3a1a-4111-b1b2-11277a387c49" />
   <Project Path="RuteaYa.Logica/RuteaYa.Logica.csproj" Id="77e9fe14-7e4b-4081-a82c-9117cff5a4f4" />
   <Project Path="RuteaYa.MVC/RuteaYa.MVC.csproj" />
+  <Project Path="RuteaYa.Tests/RuteaYa.Tests.csproj" Id="e67bff3c-3d6e-474f-9ad6-07bd272445a1" />
   <Project Path="RuteaYa.WebApi/RuteaYa.WebApi.csproj" Id="8c7c5ea3-7733-4585-9ef3-42fac12fbc2c" />
 </Solution>
