@@ -125,6 +125,130 @@ namespace RuteaYa.Logica
             return Ordenar(oportunidades, orden);
         }
 
+
+        public async Task<List<OportunidadDto>> ObtenerCandidatosPorFechaAsync(
+            int viajeId,
+            int usuarioId,
+            DateTime fecha,
+            string? orden = "ganancia")
+        {
+            var fechaAnalizada = fecha.Date;
+
+            var viaje = await _context.Viajes
+                .AsNoTracking()
+                .Include(v => v.DiasSemana)
+                .Include(v => v.Paradas)
+                .FirstOrDefaultAsync(v =>
+                    v.Id == viajeId &&
+                    v.UsuarioId == usuarioId &&
+                    v.Activo);
+
+            if (viaje == null)
+            {
+                throw new KeyNotFoundException(
+                    "El viaje no existe, está inactivo o no te pertenece.");
+            }
+
+            int dia = ADiaDelViaje(fechaAnalizada);
+
+            if (!viaje.DiasSemana.Any(d => (int)d.DiaSemana == dia))
+                return new List<OportunidadDto>();
+
+            if (fechaAnalizada < DateTime.Today)
+                return new List<OportunidadDto>();
+
+            var asignados = await _context.Envios
+                .AsNoTracking()
+                .Where(e =>
+                    e.ViajeId == viajeId &&
+                    e.Fecha.Date == fechaAnalizada &&
+                    e.Estado != "Cancelado")
+                .Select(e => new { e.Peso, e.DesvioKm })
+                .ToListAsync();
+
+            int paquetesLibres = viaje.MaxPaquetes - asignados.Count;
+            decimal pesoLibre = viaje.PesoMaxKg - asignados.Sum(a => a.Peso);
+            double desvioRestante =
+                (double)(viaje.DesvioMaxKm - asignados.Sum(a => a.DesvioKm));
+
+            if (paquetesLibres <= 0 || pesoLibre <= 0 || desvioRestante <= 0)
+                return new List<OportunidadDto>();
+
+            var candidatos = await _context.Envios
+                .AsNoTracking()
+                .Where(e =>
+                    e.Estado == EstadoDisponible &&
+                    e.ViajeId == null &&
+                    e.UsuarioId != usuarioId &&
+                    e.Fecha >= fechaAnalizada &&
+                    e.Fecha < fechaAnalizada.AddDays(1) &&
+                    e.Peso <= pesoLibre)
+                .ToListAsync();
+
+            var puntosHabituales = ArmarPuntos(viaje, soloHabituales: true);
+
+            var preseleccionados = candidatos
+                .Select(e =>
+                {
+                    var (retiro, entrega) = PuntosDelEnvio(e);
+                    var ruta = PlanificadorRuta.MejorInsercion(
+                        puntosHabituales, retiro, entrega);
+
+                    var costo = PlanificadorRuta.CostoExtraKm(
+                        puntosHabituales, ruta);
+
+                    return new
+                    {
+                        Envio = e,
+                        Ruta = ruta,
+                        CostoEstimadoKm = costo
+                    };
+                })
+                .Where(x => x.CostoEstimadoKm <= desvioRestante * FactorMargen)
+                .OrderBy(x => x.CostoEstimadoKm)
+                .Take(MaxCandidatosAHere)
+                .ToList();
+
+            var oportunidades = new List<OportunidadDto>();
+            int fallos = 0;
+
+            foreach (var candidato in preseleccionados)
+            {
+                try
+                {
+                    var evaluacion = await EvaluarAsync(
+                        viaje, candidato.Envio, candidato.Ruta);
+
+                    if (evaluacion != null &&
+                        evaluacion.DesvioKm <= desvioRestante)
+                    {
+                        evaluacion.TiempoHabitualMin = viaje.DuracionMin;
+
+                        evaluacion.CapacidadRestanteKg =
+                            Math.Max(0m, pesoLibre - candidato.Envio.Peso);
+
+                        evaluacion.PaquetesRestantes =
+                            Math.Max(0, paquetesLibres - 1);
+
+                        oportunidades.Add(evaluacion);
+                    }
+                }
+                catch (HttpRequestException)
+                {
+                    fallos++;
+                }
+            }
+
+            if (preseleccionados.Count > 0 &&
+                fallos == preseleccionados.Count)
+            {
+                throw new InvalidOperationException(
+                    "No se pudo conectar con el servicio de mapas. Intentá nuevamente.");
+            }
+
+            return Ordenar(oportunidades, orden);
+        }
+
         public async Task<ResultadoOperacion<bool>> AceptarEnvioAsync(
             int viajeId,
             int envioId,
@@ -439,8 +563,10 @@ namespace RuteaYa.Logica
             return puntos;
         }
 
-        private static bool EsHabitual(Parada p) =>
-    p.EnvioId == null;
+        //private static bool EsHabitual(Parada p) => p.Tipo != "Retiro" && p.Tipo != "Entrega";
+
+        private static bool EsHabitual(Parada p) => p.EnvioId == null;
+
         private static (Coordenadas Retiro, Coordenadas Entrega) PuntosDelEnvio(Envio e) => (
             new Coordenadas { Latitud = (double)e.OrigenLat, Longitud = (double)e.OrigenLng },
             new Coordenadas { Latitud = (double)e.DestinoLat, Longitud = (double)e.DestinoLng });

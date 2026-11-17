@@ -83,6 +83,8 @@ else
 
 builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IOportunidadService,OportunidadService>();
+builder.Services.AddScoped<IGananciasMensualesService, GananciasMensualesService>();
+
 
 builder.Services.AddHttpClient<IRutaService, HereRutaService>();
 
