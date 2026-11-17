@@ -24,6 +24,11 @@ namespace RuteaYa.DTOs
         public double DistanciaConEnvioKm { get; set; }
         public double DesvioKm { get; set; }
         public double TiempoAdicionalMin { get; set; }
+        public int TiempoHabitualMin { get; set; }
+
+        public decimal CapacidadRestanteKg { get; set; }
+
+        public int PaquetesRestantes { get; set; }
         public string Compatibilidad { get; set; } = string.Empty;
     }
 }

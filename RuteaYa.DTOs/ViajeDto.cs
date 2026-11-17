@@ -23,11 +23,14 @@ namespace RuteaYa.DTOs
         public int DuracionMin { get; set; }
         public bool Activo { get; set; }
         public bool TieneEnviosAsignados { get; set; }
-
+        public double? DistanciaConEnviosKm { get; set; }
+        public double? DesvioTotalKm { get; set; }
+        public double? DuracionConEnviosMin { get; set; }
+        public double? TiempoAdicionalMin { get; set; }
         public List<byte> DiasSemana { get; set; } = new();
         public string DiasTexto { get; set; } = string.Empty;    
-        public string HorarioTexto { get; set; } = string.Empty;  
-
+        public string HorarioTexto { get; set; } = string.Empty;
+        public decimal GananciaTotal { get; set; }
         public List<ParadaDto> Paradas { get; set; } = new();
         public List<CoordenadaDto> PuntosRuta { get; set; } = new();
     }

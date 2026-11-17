@@ -1,6 +1,10 @@
 ﻿
 @model List<RuteaYa.DTOs.OportunidadDto>
 @{
+    decimal gananciaTotal = Model?.Sum(e => e.MontoOfrecido) ?? 0m;
+    int cantidadEnvios = Model?.Count ?? 0;
+}
+@{
     var capacidad = ViewBag.Capacidad as RuteaYa.DTOs.CapacidadViajeDto;
 }
 @{
@@ -64,13 +68,38 @@
                 y @capacidad.PesoDisponibleKg kg
             </div>
 
+        
         </div>
     </div>
 }
 
-    <p class="text-muted">
-        Paquetes asignados al viaje #@ViewBag.ViajeId
-    </p>
+<!-- RESUMEN DE GANANCIAS -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+
+        <h5 class="fw-bold mb-3">
+            Resumen de ganancias
+        </h5>
+
+        <div class="text-muted small mb-1">
+            Ganancia total prevista del viaje
+        </div>
+
+        <div class="fs-2 fw-bold text-success">
+            @gananciaTotal.ToString("C")
+        </div>
+
+        <div class="text-muted small mt-2">
+            @cantidadEnvios envío(s) asignado(s)
+        </div>
+
+    </div>
+</div>
+
+<p class="text-muted">
+    Paquetes asignados al viaje #@ViewBag.ViajeId
+</p>
+
 
     @if (TempData["Error"] != null)
     {
