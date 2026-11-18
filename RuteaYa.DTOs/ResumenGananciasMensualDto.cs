@@ -7,6 +7,10 @@ namespace RuteaYa.DTOs
 
         public decimal GananciasPotenciales { get; set; }
 
+        public decimal TotalEstimado => GananciasActuales + GananciasPotenciales;
+
+        public string CriterioSeleccionado { get; set; } = "ganancia";
+
         public int ViajesAnalizados { get; set; }
 
         public int EnviosPosibles { get; set; }

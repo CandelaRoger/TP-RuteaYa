@@ -17,8 +17,18 @@ namespace RuteaYa.Logica
 
 
         public async Task<ResumenGananciasMensualDto> ObtenerResumenAsync(
-            int usuarioId)
+            int usuarioId,
+            string criterio = "ganancia")
         {
+            var criterioNormalizado = string.IsNullOrWhiteSpace(criterio) ? "ganancia" : criterio.Trim().ToLowerInvariant();
+            var ordenOportunidad = criterioNormalizado switch
+            {
+                "desvio" => "desvio",
+                "equilibrio" => "compatibilidad",
+                "compatibilidad" => "compatibilidad",
+                _ => "ganancia"
+            };
+
             var hoy = DateTime.Today;
             var inicioMes = new DateTime(hoy.Year, hoy.Month, 1);
             var inicioMesSiguiente = inicioMes.AddMonths(1);
@@ -106,7 +116,7 @@ namespace RuteaYa.Logica
 
 
                 var oportunidades =
-                await _oportunidadService.ObtenerCandidatosPorFechaAsync(viaje.Id, usuarioId, fechaViaje.Fecha, "ganancia");
+                await _oportunidadService.ObtenerCandidatosPorFechaAsync(viaje.Id, usuarioId, fechaViaje.Fecha, ordenOportunidad);
 
 
                 decimal gananciaRecorrido = 0m;
@@ -156,6 +166,7 @@ namespace RuteaYa.Logica
 
             var resumen = new ResumenGananciasMensualDto
             {
+                CriterioSeleccionado = criterioNormalizado,
                 GananciasActuales = gananciasActuales,
                 GananciasPotenciales = gananciasPotenciales,
                 ViajesAnalizados = viajesAnalizados,

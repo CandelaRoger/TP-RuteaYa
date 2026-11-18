@@ -32,6 +32,11 @@ namespace RuteaYa.Logica
     DateTime fecha,
     string? orden = "ganancia");
 
+        Task<ResultadoOperacion<ResumenSeleccionDto>> PrevisualizarSeleccionAsync(
+    int viajeId, List<int> envioIds, int usuarioId);
+
+        Task<ResultadoOperacion<bool>> ConfirmarSeleccionAsync(
+            int viajeId, List<int> envioIds, int usuarioId);
 
     }
 }

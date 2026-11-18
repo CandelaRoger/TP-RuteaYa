@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RuteaYa.DTOs;
 using RuteaYa.Logica;
 using System.Security.Claims;
 
@@ -180,6 +181,71 @@ namespace RuteaYa.WebApi.Controllers
             });
         }
 
+        [HttpPost("viaje/{viajeId}/seleccion/resumen")]
+        public async Task<IActionResult> PrevisualizarSeleccion(
+    int viajeId, [FromBody] SeleccionEnviosDto dto)
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized(new { mensaje = "Inicie sesión nuevamente." });
+
+            try
+            {
+                var resultado = await _service.PrevisualizarSeleccionAsync(
+                    viajeId, dto.EnvioIds, usuarioId);
+
+                if (!resultado.Exitoso)
+                {
+                    return resultado.EsNoEncontrado
+                        ? NotFound(new { mensaje = resultado.MensajeError })
+                        : BadRequest(new { mensaje = resultado.MensajeError });
+                }
+
+                return Ok(resultado.Datos);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { mensaje = ex.Message });
+            }
+        }
+
+        [HttpPost("viaje/{viajeId}/seleccion/confirmar")]
+        public async Task<IActionResult> ConfirmarSeleccion(
+            int viajeId, [FromBody] SeleccionEnviosDto dto)
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized(new { mensaje = "Inicie sesión nuevamente." });
+
+            try
+            {
+                var resultado = await _service.ConfirmarSeleccionAsync(
+                    viajeId, dto.EnvioIds, usuarioId);
+
+                if (!resultado.Exitoso)
+                {
+                    if (resultado.EsNoEncontrado)
+                        return NotFound(new { mensaje = resultado.MensajeError });
+
+                    if (resultado.EsConflicto)
+                        return Conflict(new { mensaje = resultado.MensajeError });
+
+                    return BadRequest(new { mensaje = resultado.MensajeError });
+                }
+
+                return Ok(new { mensaje = "Selección reservada correctamente." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { mensaje = ex.Message });
+            }
+        }
+
+        private bool TryObtenerUsuarioId(out int usuarioId)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+
+            return int.TryParse(claim, out usuarioId);
+        }
 
     }
 

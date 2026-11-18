@@ -20,8 +20,9 @@ namespace RuteaYa.MVC.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromQuery] string criterio = "ganancia")
         {
+            var criterioNormalizado = string.IsNullOrWhiteSpace(criterio) ? "ganancia" : criterio.Trim().ToLowerInvariant();
             var client = _httpClientFactory.CreateClient("RuteaYaApi");
 
             var token = await HttpContext.GetTokenAsync("jwt");
@@ -40,23 +41,28 @@ namespace RuteaYa.MVC.Controllers
             try
             {
                 var resumen = await client.GetFromJsonAsync<ResumenGananciasMensualDto>(
-                "api/ganancias-mensuales");
+                $"api/ganancias-mensuales?criterio={Uri.EscapeDataString(criterioNormalizado)}");
 
-                return View(resumen ?? new ResumenGananciasMensualDto());
+                if (resumen != null)
+                {
+                    resumen.CriterioSeleccionado = criterioNormalizado;
+                }
+
+                return View(resumen ?? new ResumenGananciasMensualDto { CriterioSeleccionado = criterioNormalizado });
             }
             catch (HttpRequestException)
             {
                 TempData["Error"] =
                     "No se pudo obtener el resumen de ganancias.";
 
-                return View(new ResumenGananciasMensualDto());
+                return View(new ResumenGananciasMensualDto { CriterioSeleccionado = criterioNormalizado });
             }
             catch (System.Text.Json.JsonException)
             {
                 TempData["Error"] =
                     "La API devolvió una respuesta inesperada.";
 
-                return View(new ResumenGananciasMensualDto());
+                return View(new ResumenGananciasMensualDto { CriterioSeleccionado = criterioNormalizado });
             }
         }
     }
