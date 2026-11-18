@@ -1,0 +1,88 @@
+﻿@model RuteaYa.DTOs.HistorialViewModel
+
+@{
+    ViewData["Title"] = "Historial";
+}
+
+<h2 class="fw-bold text-brand mb-4"><i class="bi bi-clock-history"></i> Historial de Operaciones</h2>
+
+<!-- Tarjetas de Métricas Dinámicas -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card card-custom bg-white p-3 text-center border-start border-4 border-primary shadow-sm">
+            <p class="text-muted small text-uppercase mb-1 fw-bold">Viajes Realizados</p>
+            <h2 class="fw-bold text-primary mb-0">@Model.TotalViajes</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom bg-white p-3 text-center border-start border-4 border-info shadow-sm">
+            <p class="text-muted small text-uppercase mb-1 fw-bold">Envíos Transportados</p>
+            <h2 class="fw-bold text-info mb-0">@Model.TotalEnvios</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom bg-success text-white p-3 text-center shadow-sm">
+            <p class="small text-uppercase mb-1 fw-bold opacity-75">Ganancia Efectiva</p>
+            <h2 class="fw-bold mb-0">@Model.GananciaTotal.ToString("C")</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de Filtros (Opcional pero suma puntos para el TP) -->
+<form method="get" class="card card-custom bg-white p-3 mb-4 shadow-sm">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small fw-bold">Estado</label>
+            <select name="estado" class="form-select">
+                <option value="Todos">Todos</option>
+                <option value="Entregado">Entregado / Finalizado</option>
+                <option value="Cancelado">Cancelado</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small fw-bold">Fecha</label>
+            <input type="date" name="fecha" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Filtrar</button>
+        </div>
+    </div>
+</form>
+
+<!-- Tabla de Operaciones Dinámica -->
+<div class="card card-custom bg-white p-0 shadow-sm">
+    <table class="table table-borderless table-striped align-middle mb-0">
+        <thead class="bg-light">
+            <tr>
+                <th class="ps-4">Operación / Ruta</th>
+                <th>Fecha / Detalle</th>
+                <th class="text-end pe-4">Monto</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Operaciones != null && Model.Operaciones.Any())
+            {
+                foreach (var op in Model.Operaciones)
+                {
+                    <tr>
+                        <td class="ps-4">
+                            @if (op.Tipo == "Envío")
+                            {
+                                <span class="badge bg-secondary me-2">Envío</span>
+                            }
+                            <strong>@op.Ruta</strong>
+                        </td>
+                        <td class="text-muted">@op.Detalle</td>
+                        <td class="text-end pe-4 fw-bold text-success">@op.Monto.ToString("C")</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="3" class="text-center text-muted py-4">No se registran operaciones en el historial.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
