@@ -10,6 +10,7 @@ namespace RuteaYa.MVC.Mappings
         {
             CreateMap<RegistroViewModel, RegistroDto>();
             CreateMap<LoginViewModel, LoginDto>();
+            CreateMap<PaqueteTransporteDto, TransporteItemViewModel>();
         }
 
     }

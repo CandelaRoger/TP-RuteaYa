@@ -101,7 +101,9 @@ namespace RuteaYa.Logica
         public async Task<EnvioDto?> ObtenerEnvioPorIdAsync(int envioId, int usuarioId)
         {
             var envio = await _context.Envios
-                .FirstOrDefaultAsync(e => e.Id == envioId && e.UsuarioId == usuarioId);
+         .Include(e => e.Viaje)
+         .FirstOrDefaultAsync(e => e.Id == envioId &&
+             (e.UsuarioId == usuarioId || (e.Viaje != null && e.Viaje.UsuarioId == usuarioId)));
 
             return envio == null ? null : MapearAEnvioDto(envio);
         }

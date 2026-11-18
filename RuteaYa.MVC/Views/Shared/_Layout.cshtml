@@ -27,11 +27,11 @@
                     <li class="nav-item">
                         <a class="nav-link fw-semibold px-3 text-secondary" asp-controller="Envios" asp-action="Index">Mis envíos</a>
                     </li>
+                     <li class="nav-item">
+                        <a class="nav-link fw-semibold px-3 text-secondary" asp-controller="Transportes" asp-action="Index">Mis transportes</a>
+                    </li>
                 </ul>
                 <div class="d-flex align-items-center gap-2">
-                    <a asp-controller="Envios" asp-action="Crear" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">+ Publicar envío</a>
-                    <a asp-controller="Viajes" asp-action="Crear" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">+ Nuevo viaje</a>
-                    <a asp-controller="Auth" asp-action="Login" class="btn btn-outline-secondary btn-sm rounded-pill px-3 ms-2">Cerrar sesión</a>
                     <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 ms-2">
