@@ -68,6 +68,7 @@ builder.Services.AddDbContext<RuteaYaDbContext>(options =>
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
+builder.Services.AddScoped<ITransporteService, TransporteService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IEnvioService, EnvioService>();
