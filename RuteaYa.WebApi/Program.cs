@@ -86,6 +86,7 @@ builder.Services.AddScoped<IOportunidadService,OportunidadService>();
 builder.Services.AddScoped<IGananciasMensualesService, GananciasMensualesService>();
 
 builder.Services.AddScoped<OptimizadorRecorridos>();
+builder.Services.AddScoped<IHistorialService, HistorialService>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
