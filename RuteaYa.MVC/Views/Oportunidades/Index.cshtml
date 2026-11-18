@@ -45,6 +45,12 @@
     }
     else
     {
+        <form id="formSeleccion" method="get" asp-action="Confirmar"
+              class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <input type="hidden" name="viajeId" value="@ViewBag.ViajeId" />
+            <button type="submit" id="btnRevisar" class="btn btn-primary" disabled>Revisar selección</button>
+            <span class="text-muted small" id="contadorSeleccion"></span>
+        </form>
         <div class="row">
             @foreach (var oportunidad in Model)
             {
@@ -59,7 +65,14 @@
                     <div class="card shadow-sm">
                         
 <div class="card-body p-4">
-
+    <div class="form-check mb-2">
+        <input class="form-check-input seleccion-envio" type="checkbox"
+            id="envio-@oportunidad.EnvioId"
+            name="envioIds" value="@oportunidad.EnvioId" form="formSeleccion" />
+        <label class="form-check-label small text-muted" for="envio-@oportunidad.EnvioId">
+            Incluir en la selección
+        </label>
+    </div>
     <h5 class="card-title fw-bold mb-2">
         @oportunidad.OrigenDir
         <span class="text-primary">→</span>
@@ -171,4 +184,24 @@
             }
         </div>
     }
+    <script>
+            (function () {
+                const checks = document.querySelectorAll('.seleccion-envio');
+                const boton = document.getElementById('btnRevisar');
+                const contador = document.getElementById('contadorSeleccion');
+
+                if (!boton) return;
+
+                function actualizar() {
+                    const n = Array.from(checks).filter(c => c.checked).length;
+                    boton.disabled = n === 0;
+                    contador.textContent = n === 0
+                        ? 'Seleccioná uno o más envíos para revisarlos juntos.'
+                        : n + (n === 1 ? ' envío seleccionado' : ' envíos seleccionados');
+                }
+
+                checks.forEach(c => c.addEventListener('change', actualizar));
+                actualizar();
+            })();
+    </script>
 </div>
