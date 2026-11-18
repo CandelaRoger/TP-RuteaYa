@@ -1,59 +1,113 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.DTOs;
-using System.Security.Claims;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Globalization;
 
-namespace RuteaYa.MVC.Controllers;
-
-[Authorize]
-public class HistorialController : Controller
+namespace RuteaYa.MVC.Controllers
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-
-    public HistorialController(IHttpClientFactory httpClientFactory)
+    [Authorize]
+    public class HistorialController : Controller
     {
-        _httpClientFactory = httpClientFactory;
-    }
+        private readonly IHttpClientFactory _httpClientFactory;
 
-    public async Task<IActionResult> Index(DateTime? fechaInicio, DateTime? fechaFin, string? estado = "Todos")
-    {
-        var usuarioIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                           ?? User.FindFirstValue("sub")
-                           ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
-
-        if (string.IsNullOrEmpty(usuarioIdStr) || !int.TryParse(usuarioIdStr, out int usuarioId))
+        public HistorialController(IHttpClientFactory httpClientFactory)
         {
-            return RedirectToAction("Login", "Auth");
+            _httpClientFactory = httpClientFactory;
         }
 
-        HistorialViewModel? historialData = null;
-
-        try
+        public async Task<IActionResult> Index(
+            DateTime? fechaInicio,
+            DateTime? fechaFin,
+            string? estado = "Todos")
         {
-            var client = _httpClientFactory.CreateClient("RuteaYaApi");
-            var token = await HttpContext.GetTokenAsync("jwt");
+            ViewBag.FechaInicio = fechaInicio?.ToString("yyyy-MM-dd");
+            ViewBag.FechaFin = fechaFin?.ToString("yyyy-MM-dd");
+            ViewBag.Estado = estado ?? "Todos";
 
-            if (!string.IsNullOrEmpty(token))
+            if (fechaInicio.HasValue && fechaFin.HasValue &&
+                fechaInicio.Value.Date > fechaFin.Value.Date)
             {
-                client.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                ModelState.AddModelError(
+                    string.Empty,
+                    "La fecha inicial no puede ser posterior a la fecha final.");
+
+                return View(new HistorialViewModel());
             }
 
-            var options = new System.Text.Json.JsonSerializerOptions
+            var historialData = new HistorialViewModel();
+
+            try
             {
-                PropertyNameCaseInsensitive = true
-            };
+                var client = _httpClientFactory.CreateClient("RuteaYaApi");
+                var token = await HttpContext.GetTokenAsync("jwt");
 
-            // Llamada a la API construida en el paso 1
-            historialData = await client.GetFromJsonAsync<HistorialViewModel>(
-                $"api/historial/{usuarioId}?estado={estado}", options);
-        }
-        catch (Exception)
-        {
-            ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API para obtener el historial.");
-        }
+                if (string.IsNullOrEmpty(token))
+                {
+                    return RedirectToAction("Login", "Auth");
+                }
 
-        return View(historialData ?? new HistorialViewModel());
+                client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+
+                var parametros = new List<string>();
+
+                if (fechaInicio.HasValue)
+                {
+                    parametros.Add(
+                        $"fechaInicio={fechaInicio.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+                }
+
+                if (fechaFin.HasValue)
+                {
+                    parametros.Add(
+                        $"fechaFin={fechaFin.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(estado))
+                {
+                    parametros.Add($"estado={Uri.EscapeDataString(estado)}");
+                }
+
+                var url = "api/historial";
+
+                if (parametros.Any())
+                {
+                    url += "?" + string.Join("&", parametros);
+                }
+
+                var response = await client.GetAsync(url);
+
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return RedirectToAction("Login", "Auth");
+                }
+
+                if (response.IsSuccessStatusCode)
+                {
+                    historialData =
+                        await response.Content.ReadFromJsonAsync<HistorialViewModel>()
+                        ?? new HistorialViewModel();
+                }
+                else
+                {
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "No se pudo obtener el historial.");
+                }
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "No se pudo conectar con el servidor de la API.");
+            }
+
+            return View(historialData);
+        }
     }
 }

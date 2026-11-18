@@ -14,10 +14,13 @@ namespace RuteaYa.Logica
     public class DashboardService : IDashboardService
     {
         private readonly RuteaYaDbContext _context;
+        private readonly IGananciasMensualesService _gananciasMensualesService;
 
-        public DashboardService(RuteaYaDbContext context)
+
+        public DashboardService(RuteaYaDbContext context, IGananciasMensualesService gananciasMensualesService)
         {
             _context = context;
+            _gananciasMensualesService = gananciasMensualesService;
         }
 
         public async Task<DashboardDto> GetDashboardDataAsync(int usuarioId)
@@ -40,13 +43,15 @@ namespace RuteaYa.Logica
                 .Where(e => e.Estado == "Buscando conductor" && e.UsuarioId != usuarioId)
                 .CountAsync();
 
-            
+            var resumenGanancias =
+                await _gananciasMensualesService.ObtenerResumenAsync(usuarioId);
+
             return new DashboardDto
             {
                 CantProximosViajes = viajesActivos.Count,
                 CantEnviosPendientes = enviosPendientes.Count,
                 CantOportunidades = oportunidadesCount,
-                PotencialDelMes = 84500m, 
+                PotencialDelMes = resumenGanancias.GananciasPotenciales,
                 NombreUsuario = nombreCompleto,
                 ProximosViajes = viajesActivos.Select(v => new ViajeResumenDto
                 {

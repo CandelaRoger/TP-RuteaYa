@@ -1,0 +1,129 @@
+﻿@model RuteaYa.DTOs.ResumenSeleccionDto
+
+@{
+    ViewData["Title"] = "Confirmar selección";
+
+    var idsDisponibles = Model.Envios.Select(e => e.EnvioId).ToList();
+
+    // "Recalcular": vuelve al resumen solo con los envíos que siguen disponibles
+    var urlSinConflictos = (Url.Action("Confirmar", new { viajeId = Model.ViajeId }) ?? "")
+        + "&" + string.Join("&", idsDisponibles.Select(id => $"envioIds={id}"));
+}
+
+<div class="container mt-4">
+
+    <h2 class="fw-bold mb-1">Confirmar selección</h2>
+    <p class="text-muted mb-4">Revisá el resumen antes de reservar.</p>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger rounded-4">@TempData["Error"]</div>
+    }
+
+    @if (Model.Conflictos.Any())
+    {
+        <div class="alert alert-warning rounded-4">
+            <div class="fw-semibold mb-1">Algunos envíos ya no están disponibles:</div>
+            <ul class="mb-2">
+                @foreach (var conflicto in Model.Conflictos)
+                {
+                    <li>@conflicto.Mensaje</li>
+                }
+            </ul>
+
+            @if (Model.Envios.Any() && !Model.Errores.Any())
+            {
+                <a href="@urlSinConflictos" class="btn btn-sm btn-warning">Continuar sin ellos</a>
+            }
+        </div>
+    }
+
+    @if (Model.Errores.Any())
+    {
+        <div class="alert alert-danger rounded-4">
+            <div class="fw-semibold mb-1">La selección no se puede reservar:</div>
+            <ul class="mb-0">
+                @foreach (var error in Model.Errores)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <h5 class="fw-bold mb-3">
+            @Model.ViajeOrigenDir <span class="text-primary">→</span> @Model.ViajeDestinoDir
+        </h5>
+
+        @if (!Model.Envios.Any())
+        {
+            <p class="text-muted mb-0">No hay envíos para reservar.</p>
+        }
+
+        @foreach (var envio in Model.Envios)
+        {
+            <div class="d-flex justify-content-between align-items-center border-top py-2">
+                <span class="fw-semibold">
+                    @envio.OrigenDir <span class="text-primary">→</span> @envio.DestinoDir
+                </span>
+                <span class="text-muted small">
+                    @envio.Peso.ToString("0.##") kg · @envio.DesvioKm.ToString("0.0") km
+                </span>
+                <span class="fw-bold">$@envio.MontoOfrecido.ToString("N0")</span>
+            </div>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 rounded-4 p-3 h-100" style="background-color:#dff5e8;">
+                <div class="text-success small">Ganancia total</div>
+                <div class="fs-2 fw-bold text-success">$@Model.GananciaTotal.ToString("N0")</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <div class="text-muted small">Peso total</div>
+                <div class="fs-2 fw-bold">@Model.PesoTotal.ToString("0.##") kg</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <div class="text-muted small">Desvío total</div>
+                <div class="fs-2 fw-bold">@Model.DesvioTotalKm.ToString("0.0") km</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                <div class="text-muted small">Paquetes</div>
+                <div class="fs-2 fw-bold">@Model.CantidadPaquetes</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a asp-action="Index" asp-route-viajeId="@Model.ViajeId"
+           class="btn btn-outline-secondary rounded-pill px-4">Volver</a>
+
+        @if (Model.PuedeConfirmar)
+        {
+            <form asp-action="Reservar" method="post" class="d-inline">
+                <input type="hidden" name="viajeId" value="@Model.ViajeId" />
+                @foreach (var id in idsDisponibles)
+                {
+                    <input type="hidden" name="envioIds" value="@id" />
+                }
+                <button type="submit" class="btn btn-primary rounded-pill px-4">
+                    Confirmar y reservar
+                </button>
+            </form>
+        }
+        else
+        {
+            <button type="button" class="btn btn-primary rounded-pill px-4" disabled>
+                Confirmar y reservar
+            </button>
+        }
+    </div>
+</div>

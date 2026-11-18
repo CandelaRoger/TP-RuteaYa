@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
+﻿
 namespace RuteaYa.DTOs
 {
     public class HistorialViewModel
@@ -12,15 +9,14 @@ namespace RuteaYa.DTOs
         public List<ItemHistorialDto> Operaciones { get; set; } = new();
     }
 
-   
     public class ItemHistorialDto
     {
-        public string Tipo { get; set; } = "Viaje"; 
+        public string Tipo { get; set; } = "Envío";
         public string Ruta { get; set; } = string.Empty;
         public string Detalle { get; set; } = string.Empty;
         public decimal Monto { get; set; }
-        public string EstadoBadge { get; set; } = "bg-primary";
-        public DateTime Fecha { get; set; }
         public string Estado { get; set; } = string.Empty;
+        public string EstadoBadge { get; set; } = "bg-secondary";
+        public DateTime? Fecha { get; set; }
     }
 }

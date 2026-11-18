@@ -10,7 +10,9 @@ namespace RuteaYa.Logica
         private const string EstadoDisponible = "Buscando conductor";
         private const string EstadoAsignado = "Conductor asignado";
         private const double FactorMargen = 2.0;      
-        private const int MaxCandidatosAHere = 15;   
+        private const int MaxCandidatosAHere = 15;
+
+        private const int MaxSeleccion = 20;   // tope de envíos por selección (limita llamadas al mapa)
 
         private readonly RuteaYaDbContext _context;
         private readonly IRutaService _rutaService;
@@ -120,6 +122,130 @@ namespace RuteaYa.Logica
             {
                 throw new InvalidOperationException(
                     "No se pudo conectar con el servicio de mapas. Intentá nuevamente en unos minutos.");
+            }
+
+            return Ordenar(oportunidades, orden);
+        }
+
+
+        public async Task<List<OportunidadDto>> ObtenerCandidatosPorFechaAsync(
+            int viajeId,
+            int usuarioId,
+            DateTime fecha,
+            string? orden = "ganancia")
+        {
+            var fechaAnalizada = fecha.Date;
+
+            var viaje = await _context.Viajes
+                .AsNoTracking()
+                .Include(v => v.DiasSemana)
+                .Include(v => v.Paradas)
+                .FirstOrDefaultAsync(v =>
+                    v.Id == viajeId &&
+                    v.UsuarioId == usuarioId &&
+                    v.Activo);
+
+            if (viaje == null)
+            {
+                throw new KeyNotFoundException(
+                    "El viaje no existe, está inactivo o no te pertenece.");
+            }
+
+            int dia = ADiaDelViaje(fechaAnalizada);
+
+            if (!viaje.DiasSemana.Any(d => (int)d.DiaSemana == dia))
+                return new List<OportunidadDto>();
+
+            if (fechaAnalizada < DateTime.Today)
+                return new List<OportunidadDto>();
+
+            var asignados = await _context.Envios
+                .AsNoTracking()
+                .Where(e =>
+                    e.ViajeId == viajeId &&
+                    e.Fecha.Date == fechaAnalizada &&
+                    e.Estado != "Cancelado")
+                .Select(e => new { e.Peso, e.DesvioKm })
+                .ToListAsync();
+
+            int paquetesLibres = viaje.MaxPaquetes - asignados.Count;
+            decimal pesoLibre = viaje.PesoMaxKg - asignados.Sum(a => a.Peso);
+            double desvioRestante =
+                (double)(viaje.DesvioMaxKm - asignados.Sum(a => a.DesvioKm));
+
+            if (paquetesLibres <= 0 || pesoLibre <= 0 || desvioRestante <= 0)
+                return new List<OportunidadDto>();
+
+            var candidatos = await _context.Envios
+                .AsNoTracking()
+                .Where(e =>
+                    e.Estado == EstadoDisponible &&
+                    e.ViajeId == null &&
+                    e.UsuarioId != usuarioId &&
+                    e.Fecha >= fechaAnalizada &&
+                    e.Fecha < fechaAnalizada.AddDays(1) &&
+                    e.Peso <= pesoLibre)
+                .ToListAsync();
+
+            var puntosHabituales = ArmarPuntos(viaje, soloHabituales: true);
+
+            var preseleccionados = candidatos
+                .Select(e =>
+                {
+                    var (retiro, entrega) = PuntosDelEnvio(e);
+                    var ruta = PlanificadorRuta.MejorInsercion(
+                        puntosHabituales, retiro, entrega);
+
+                    var costo = PlanificadorRuta.CostoExtraKm(
+                        puntosHabituales, ruta);
+
+                    return new
+                    {
+                        Envio = e,
+                        Ruta = ruta,
+                        CostoEstimadoKm = costo
+                    };
+                })
+                .Where(x => x.CostoEstimadoKm <= desvioRestante * FactorMargen)
+                .OrderBy(x => x.CostoEstimadoKm)
+                .Take(MaxCandidatosAHere)
+                .ToList();
+
+            var oportunidades = new List<OportunidadDto>();
+            int fallos = 0;
+
+            foreach (var candidato in preseleccionados)
+            {
+                try
+                {
+                    var evaluacion = await EvaluarAsync(
+                        viaje, candidato.Envio, candidato.Ruta);
+
+                    if (evaluacion != null &&
+                        evaluacion.DesvioKm <= desvioRestante)
+                    {
+                        evaluacion.TiempoHabitualMin = viaje.DuracionMin;
+
+                        evaluacion.CapacidadRestanteKg =
+                            Math.Max(0m, pesoLibre - candidato.Envio.Peso);
+
+                        evaluacion.PaquetesRestantes =
+                            Math.Max(0, paquetesLibres - 1);
+
+                        oportunidades.Add(evaluacion);
+                    }
+                }
+                catch (HttpRequestException)
+                {
+                    fallos++;
+                }
+            }
+
+            if (preseleccionados.Count > 0 &&
+                fallos == preseleccionados.Count)
+            {
+                throw new InvalidOperationException(
+                    "No se pudo conectar con el servicio de mapas. Intentá nuevamente.");
             }
 
             return Ordenar(oportunidades, orden);
@@ -385,6 +511,271 @@ namespace RuteaYa.Logica
             return ResultadoOperacion<bool>.Ok(true);
         }
 
+        // ================= PANTALLA 11: CONFIRMACIÓN DE SELECCIÓN =================
+
+        public async Task<ResultadoOperacion<ResumenSeleccionDto>> PrevisualizarSeleccionAsync(
+            int viajeId, List<int> envioIds, int usuarioId)
+        {
+            var resultado = await EvaluarSeleccionAsync(viajeId, envioIds, usuarioId);
+
+            if (!resultado.Exitoso)
+                return Propagar<SeleccionEvaluada, ResumenSeleccionDto>(resultado);
+
+            var s = resultado.Datos!;
+
+            return ResultadoOperacion<ResumenSeleccionDto>.Ok(new ResumenSeleccionDto
+            {
+                ViajeId = s.Viaje.Id,
+                ViajeOrigenDir = s.Viaje.OrigenDir,
+                ViajeDestinoDir = s.Viaje.DestinoDir,
+                Envios = s.Items.Select(i => i.Evaluacion).ToList(),
+                GananciaTotal = s.Items.Sum(i => i.Envio.MontoOfrecido),
+                PesoTotal = s.Items.Sum(i => i.Envio.Peso),
+                DesvioTotalKm = Math.Round(s.Items.Sum(i => i.Evaluacion.DesvioKm), 2),
+                CantidadPaquetes = s.Items.Count,
+                Conflictos = s.Conflictos,
+                Errores = s.Errores
+            });
+        }
+
+        public async Task<ResultadoOperacion<bool>> ConfirmarSeleccionAsync(
+            int viajeId, List<int> envioIds, int usuarioId)
+        {
+            await using var transaccion = await _context.Database
+                .BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+
+            // 1) Se valida TODO antes de modificar nada (así el "todo o nada" es seguro)
+            var resultado = await EvaluarSeleccionAsync(viajeId, envioIds, usuarioId);
+
+            if (!resultado.Exitoso)
+                return Propagar<SeleccionEvaluada, bool>(resultado);
+
+            var seleccion = resultado.Datos!;
+            var viaje = seleccion.Viaje;
+
+            // Si otro usuario tomó alguno, se informa el conflicto y no se reserva ninguno
+            if (seleccion.Conflictos.Count > 0)
+                return ResultadoOperacion<bool>.Conflicto(
+                    string.Join(" ", seleccion.Conflictos.Select(c => c.Mensaje)));
+
+            if (seleccion.Errores.Count > 0)
+                return ResultadoOperacion<bool>.Falla(string.Join(" ", seleccion.Errores));
+
+            // 2) Recién ahora se asigna, uno por uno
+            foreach (var (envio, evaluacion) in seleccion.Items)
+            {
+                envio.ViajeId = viajeId;
+                envio.Estado = EstadoAsignado;
+                envio.DesvioKm = (decimal)evaluacion.DesvioKm;
+
+                var paradaRetiro = new Parada
+                {
+                    ViajeId = viajeId,
+                    EnvioId = envio.Id,
+                    Tipo = "Retiro",
+                    Direccion = envio.OrigenDir,
+                    Lat = envio.OrigenLat,
+                    Lng = envio.OrigenLng
+                };
+
+                var paradaEntrega = new Parada
+                {
+                    ViajeId = viajeId,
+                    EnvioId = envio.Id,
+                    Tipo = "Entrega",
+                    Direccion = envio.DestinoDir,
+                    Lat = envio.DestinoLat,
+                    Lng = envio.DestinoLng
+                };
+
+                // Retiro y entrega van en la mejor posición sobre TODAS las paradas actuales
+                var (retiro, entrega) = PuntosDelEnvio(envio);
+                var rutaCompleta = PlanificadorRuta.MejorInsercion(
+                    ArmarPuntos(viaje, soloHabituales: false), retiro, entrega);
+
+                int posRetiro = rutaCompleta.IndexOf(retiro);
+                int posEntrega = rutaCompleta.IndexOf(entrega);
+
+                var ordenadas = viaje.Paradas.OrderBy(p => p.Orden).ToList();
+                ordenadas.Insert(posRetiro - 1, paradaRetiro);
+                ordenadas.Insert(posEntrega - 1, paradaEntrega);
+
+                for (int i = 0; i < ordenadas.Count; i++)
+                    ordenadas[i].Orden = i + 1;
+
+                // Se agregan a la colección para que el siguiente envío de la selección las vea
+                viaje.Paradas.Add(paradaRetiro);
+                viaje.Paradas.Add(paradaEntrega);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                await transaccion.CommitAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return ResultadoOperacion<bool>.Conflicto(
+                    "Otro usuario modificó alguno de los envíos mientras confirmabas. Revisá la selección e intentá de nuevo.");
+            }
+
+            return ResultadoOperacion<bool>.Ok(true);
+        }
+
+        // ---------- Núcleo compartido por previsualizar y confirmar ----------
+
+        private sealed class SeleccionEvaluada
+        {
+            public Viaje Viaje { get; set; } = null!;
+            public List<(Envio Envio, OportunidadDto Evaluacion)> Items { get; } = new();
+            public List<ProblemaSeleccionDto> Conflictos { get; } = new();
+            public List<string> Errores { get; } = new();
+        }
+
+        private async Task<ResultadoOperacion<SeleccionEvaluada>> EvaluarSeleccionAsync(
+            int viajeId, List<int>? envioIds, int usuarioId)
+        {
+            var ids = (envioIds ?? new List<int>()).Distinct().ToList();
+
+            if (ids.Count == 0)
+                return ResultadoOperacion<SeleccionEvaluada>.Falla("Seleccioná al menos un envío.");
+
+            if (ids.Count > MaxSeleccion)
+                return ResultadoOperacion<SeleccionEvaluada>.Falla(
+                    $"Podés seleccionar hasta {MaxSeleccion} envíos a la vez.");
+
+            var viaje = await _context.Viajes
+                .Include(v => v.DiasSemana)
+                .Include(v => v.Paradas)
+                .FirstOrDefaultAsync(v =>
+                    v.Id == viajeId &&
+                    v.UsuarioId == usuarioId &&
+                    v.Activo);
+
+            if (viaje == null)
+                return ResultadoOperacion<SeleccionEvaluada>.NoEncontrado(
+                    "El viaje no existe, está inactivo o no te pertenece.");
+
+            var seleccion = new SeleccionEvaluada { Viaje = viaje };
+
+            var envios = await _context.Envios
+                .Where(x => ids.Contains(x.Id))
+                .ToListAsync();
+
+            var diasPermitidos = viaje.DiasSemana.Select(d => (int)d.DiaSemana).ToHashSet();
+            var aEvaluar = new List<Envio>();
+
+            // Reglas individuales: un envío que falla se descarta, y se sigue con el resto
+            foreach (var id in ids)
+            {
+                var envio = envios.FirstOrDefault(x => x.Id == id);
+
+                // Conflicto: otro conductor lo tomó, se canceló o ya no existe
+                if (envio == null || envio.Estado != EstadoDisponible || envio.ViajeId != null)
+                {
+                    seleccion.Conflictos.Add(new ProblemaSeleccionDto
+                    {
+                        EnvioId = id,
+                        Mensaje = $"El envío {Describir(envio, id)} ya no está disponible."
+                    });
+                    continue;
+                }
+
+                if (envio.UsuarioId == usuarioId)
+                {
+                    seleccion.Errores.Add(
+                        $"El envío {Describir(envio, id)} lo creaste vos: no podés transportarlo.");
+                    continue;
+                }
+
+                if (envio.Fecha.Date < DateTime.Today)
+                {
+                    seleccion.Errores.Add(
+                        $"El envío {Describir(envio, id)} tiene una fecha anterior a hoy.");
+                    continue;
+                }
+
+                if (!diasPermitidos.Contains(ADiaDelViaje(envio.Fecha)))
+                {
+                    seleccion.Errores.Add(
+                        $"El viaje no sale el día del envío {Describir(envio, id)}.");
+                    continue;
+                }
+
+                aEvaluar.Add(envio);
+            }
+
+            // Desvío individual de cada envío, sobre el recorrido habitual (una llamada al mapa por envío)
+            var puntosHabituales = ArmarPuntos(viaje, soloHabituales: true);
+
+            foreach (var envio in aEvaluar)
+            {
+                var (retiro, entrega) = PuntosDelEnvio(envio);
+                var ruta = PlanificadorRuta.MejorInsercion(puntosHabituales, retiro, entrega);
+
+                OportunidadDto? evaluacion;
+                try
+                {
+                    evaluacion = await EvaluarAsync(viaje, envio, ruta);
+                }
+                catch (HttpRequestException)
+                {
+                    throw new InvalidOperationException(
+                        "No se pudo conectar con el servicio de mapas. Intentá nuevamente en unos minutos.");
+                }
+
+                if (evaluacion == null)
+                {
+                    seleccion.Errores.Add(
+                        $"No se pudo calcular el recorrido para {Describir(envio, envio.Id)}.");
+                    continue;
+                }
+
+                seleccion.Items.Add((envio, evaluacion));
+            }
+
+            // Reglas del conjunto, contando lo que ya tiene asignado el viaje
+            if (seleccion.Items.Count > 0)
+            {
+                var asignados = await _context.Envios
+                    .Where(x => x.ViajeId == viajeId && x.Estado != "Cancelado")
+                    .Select(x => new { x.Peso, x.DesvioKm })
+                    .ToListAsync();
+
+                int paquetes = asignados.Count + seleccion.Items.Count;
+                if (paquetes > viaje.MaxPaquetes)
+                    seleccion.Errores.Add(
+                        $"Superás la cantidad máxima de paquetes del viaje ({paquetes} de {viaje.MaxPaquetes}).");
+
+                decimal peso = asignados.Sum(a => a.Peso) + seleccion.Items.Sum(i => i.Envio.Peso);
+                if (peso > viaje.PesoMaxKg)
+                    seleccion.Errores.Add(
+                        $"Superás el peso máximo del viaje ({peso:0.##} de {viaje.PesoMaxKg:0.##} kg).");
+
+                decimal desvio = asignados.Sum(a => a.DesvioKm)
+                               + (decimal)seleccion.Items.Sum(i => i.Evaluacion.DesvioKm);
+                if (desvio > viaje.DesvioMaxKm)
+                    seleccion.Errores.Add(
+                        $"Superás el desvío máximo del viaje ({desvio:0.##} de {viaje.DesvioMaxKm:0.##} km).");
+            }
+
+            return ResultadoOperacion<SeleccionEvaluada>.Ok(seleccion);
+        }
+
+        private static string Describir(Envio? envio, int id) =>
+            envio != null ? $"{envio.OrigenDir} → {envio.DestinoDir}" : $"#{id}";
+
+        // Copia el error (y sus indicadores) a un resultado de otro tipo
+        private static ResultadoOperacion<TDestino> Propagar<TOrigen, TDestino>(
+            ResultadoOperacion<TOrigen> r) =>
+            new()
+            {
+                Exitoso = false,
+                EsNoEncontrado = r.EsNoEncontrado,
+                EsConflicto = r.EsConflicto,
+                MensajeError = r.MensajeError
+            };
+
         private async Task<OportunidadDto?> EvaluarAsync(
             Viaje viaje, Envio envio, List<Coordenadas> ruta)
         {
@@ -439,8 +830,10 @@ namespace RuteaYa.Logica
             return puntos;
         }
 
-        private static bool EsHabitual(Parada p) =>
-    p.EnvioId == null;
+        //private static bool EsHabitual(Parada p) => p.Tipo != "Retiro" && p.Tipo != "Entrega";
+
+        private static bool EsHabitual(Parada p) => p.EnvioId == null;
+
         private static (Coordenadas Retiro, Coordenadas Entrega) PuntosDelEnvio(Envio e) => (
             new Coordenadas { Latitud = (double)e.OrigenLat, Longitud = (double)e.OrigenLng },
             new Coordenadas { Latitud = (double)e.DestinoLat, Longitud = (double)e.DestinoLng });
