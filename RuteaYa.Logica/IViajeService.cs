@@ -19,10 +19,16 @@ namespace RuteaYa.Logica
     public class ResultadoOperacion<T>
     {
         public bool Exitoso { get; set; }
+        public bool EsNoEncontrado { get; set; }
+        public bool EsConflicto { get; set; }
         public string? MensajeError { get; set; }
         public T? Datos { get; set; }
 
         public static ResultadoOperacion<T> Ok(T datos) => new() { Exitoso = true, Datos = datos };
         public static ResultadoOperacion<T> Falla(string mensaje) => new() { Exitoso = false, MensajeError = mensaje };
+        public static ResultadoOperacion<T> NoEncontrado(string mensaje) =>
+            new() { Exitoso = false, EsNoEncontrado = true, MensajeError = mensaje };
+        public static ResultadoOperacion<T> Conflicto(string mensaje) =>
+            new() { Exitoso = false, EsConflicto = true, MensajeError = mensaje };
     }
 }
